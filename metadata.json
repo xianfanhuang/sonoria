@@ -1,0 +1,7 @@
+{
+  "name": "Copy of Sonoria Chaos V2",
+  "description": "A high-performance, aesthetically pleasing music visualizer using the Lorenz Attractor mathematical model.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
