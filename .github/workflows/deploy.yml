@@ -1,97 +1,64 @@
-name: Deploy to GitHub Pages (debuggable)
+name: Deploy to GitHub Pages
 
 on:
   push:
-    branches:
-      - main
-  workflow_dispatch: {}
+    branches: [main] # 主分支推送时触发
+  workflow_dispatch: # 手动触发
+
 permissions:
   contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
 jobs:
-  build-and-deploy:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
-
-      - name: Show repo files (for debugging)
-        run: |
-          echo "Root files:"
-          ls -la
-
-      - name: Cache npm
-        uses: actions/cache@v4
-        with:
-          path: ~/.npm
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') || hashFiles('**/package.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-
+          node-version: 20 # 匹配现代 Vite 要求
+          cache: 'npm' # 缓存依赖加速构建
 
       - name: Install dependencies
+        run: npm ci # 严格依赖安装，比 npm install 更稳定
+
+      - name: Build project
+        run: npm run build
+        env:
+          NODE_ENV: production # 强制生产环境构建
+        # 捕获构建日志，方便调试
+        continue-on-error: false
+
+      - name: Verify build output
         run: |
-          if [ -f package-lock.json ]; then
-            npm ci --prefer-offline --no-audit --progress=false
-          else
-            npm install --prefer-offline --no-audit --progress=false
+          # 检查 dist 目录是否存在
+          if [ ! -d "./dist" ]; then
+            echo "❌ Build failed: dist directory not found"
+            exit 1
           fi
-        env:
-          CI: true
+          # 列出 dist 目录内容，确认产物生成
+          echo "✅ Build success! Dist directory contents:"
+          ls -la ./dist
 
-      - name: Print package.json & vite.config.ts
-        run: |
-          echo "----- package.json -----"
-          cat package.json || true
-          echo "----- vite.config.ts -----"
-          cat vite.config.ts || true
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
 
-      - name: Build (capture logs)
-        run: |
-          set -o pipefail
-          mkdir -p /tmp/build-logs
-          echo "Running npm run build..."
-          NODE_OPTIONS=--max-old-space-size=4096 npm run build 2>&1 | tee /tmp/build-logs/build.log
-        env:
-          CI: true
-
-      - name: Upload build log
-        if: always()
-        uses: actions/upload-artifact@v4
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
         with:
-          name: build-log
-          path: /tmp/build-logs/build.log
+          path: ./dist # 上传构建产物
 
-      - name: Show dist summary
-        if: always()
-        run: |
-          echo "Dist exists?"; [ -d dist ] && echo "yes" || echo "no"
-          echo "dist size:"; du -sh dist || true
-          echo "dist listing:"; ls -la dist || true
-          echo "dist recursive listing:"; find dist -maxdepth 3 -type f -print || true
-          echo "Dist index head:"; head -n 50 dist/index.html || true
-
-      - name: Upload dist as artifact
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: dist
-          path: dist
-
-      - name: Deploy to gh-pages
-        if: success()
-        uses: peaceiris/actions-gh-pages@v3
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./dist
-          publish_branch: gh-pages
-          clean: true
-          allow_empty_commit: false
-          # optional: set commit user for gh-pages
-          user_name: 'github-actions[bot]'
-          user_email: '41898282+github-actions[bot]@users.noreply.github.com'
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
