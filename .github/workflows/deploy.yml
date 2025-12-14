@@ -1,14 +1,12 @@
-name: Deploy to GitHub Pages
+name: Deploy to GitHub Pages (debuggable)
 
 on:
   push:
     branches:
       - main
   workflow_dispatch: {}
-
 permissions:
   contents: write
-
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
@@ -17,12 +15,16 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          submodules: true
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '18'
+
+      - name: Show repo files (for debugging)
+        run: |
+          echo "Root files:"
+          ls -la
 
       - name: Cache npm
         uses: actions/cache@v4
@@ -42,15 +44,54 @@ jobs:
         env:
           CI: true
 
-      - name: Build
+      - name: Print package.json & vite.config.ts
         run: |
-          NODE_OPTIONS=--max-old-space-size=4096 npm run build
+          echo "----- package.json -----"
+          cat package.json || true
+          echo "----- vite.config.ts -----"
+          cat vite.config.ts || true
+
+      - name: Build (capture logs)
+        run: |
+          set -o pipefail
+          mkdir -p /tmp/build-logs
+          echo "Running npm run build..."
+          NODE_OPTIONS=--max-old-space-size=4096 npm run build 2>&1 | tee /tmp/build-logs/build.log
         env:
           CI: true
 
+      - name: Upload build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log
+          path: /tmp/build-logs/build.log
+
+      - name: Show dist summary
+        if: always()
+        run: |
+          echo "Dist exists?"; [ -d dist ] && echo "yes" || echo "no"
+          echo "dist size:"; du -sh dist || true
+          echo "dist listing:"; ls -la dist || true
+          echo "dist recursive listing:"; find dist -maxdepth 3 -type f -print || true
+          echo "Dist index head:"; head -n 50 dist/index.html || true
+
+      - name: Upload dist as artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist
+
       - name: Deploy to gh-pages
+        if: success()
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./dist
           publish_branch: gh-pages
+          clean: true
+          allow_empty_commit: false
+          # optional: set commit user for gh-pages
+          user_name: 'github-actions[bot]'
+          user_email: '41898282+github-actions[bot]@users.noreply.github.com'
