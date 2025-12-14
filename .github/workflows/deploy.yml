@@ -4,8 +4,9 @@ on:
   push:
     branches:
       - main
-permissions:
-  contents: write
+  workflow_dispatch: {}
+Permissions:
+   contents: write
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
@@ -31,7 +32,6 @@ jobs:
 
       - name: Install dependencies
         run: |
-          # 如果有 package-lock.json 使用 npm ci（可重复且更快），否则回退到 npm install
           if [ -f package-lock.json ]; then
             npm ci --prefer-offline --no-audit --progress=false
           else
@@ -41,7 +41,8 @@ jobs:
           CI: true
 
       - name: Build
-        run: npm run build
+        run: |
+          NODE_OPTIONS=--max-old-space-size=4096 npm run build
         env:
           CI: true
 
