@@ -1,6 +1,5 @@
 import React, { useRef } from 'react';
-import { Play, Pause, SkipBack, SkipForward, Mic, Upload, Share2, Plus } from 'lucide-react';
-import { clsx } from 'clsx';
+import { Play, Pause, SkipBack, SkipForward, Mic, Share2, Plus } from 'lucide-react';
 import { AudioEngine } from '../../services/audioEngine';
 
 interface ControlBarProps {
@@ -50,90 +49,72 @@ const ControlBar: React.FC<ControlBarProps> = ({
   const progressPercent = duration ? (currentTime / duration) * 100 : 0;
 
   return (
-    <div className="w-full max-w-3xl mx-auto backdrop-blur-xl bg-glass-bg border border-glass-border rounded-2xl p-6 shadow-2xl transition-transform duration-300 hover:scale-[1.01]">
-      {/* Track Info */}
-      <div className="text-center mb-6">
-        <h2 className="text-xl font-medium text-accent mb-1 truncate px-4">
-          {currentTrackName}
-        </h2>
-        <p className="text-sm font-light text-white/60 tracking-wide truncate">
-          {currentTrackArtist}
-        </p>
-      </div>
-
-      {/* Progress Bar */}
-      <div className="flex items-center gap-4 mb-6 text-xs text-white/70 font-mono">
-        <span className="w-10 text-right">{formatTime(currentTime)}</span>
-        <div 
-          ref={progressRef}
-          onClick={handleProgressClick}
-          className="flex-1 h-1 bg-white/10 rounded-full cursor-pointer relative group"
-        >
-          <div 
-            className="absolute left-0 top-0 h-full bg-accent rounded-full transition-all duration-100 ease-linear group-hover:bg-accent-red"
-            style={{ width: `${progressPercent}%` }}
-          />
-          {/* Hover indicator */}
-          <div 
-             className="absolute top-1/2 -translate-y-1/2 w-3 h-3 bg-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
-             style={{ left: `${progressPercent}%`, transform: 'translate(-50%, -50%)' }}
-          />
+    <div className="w-full max-w-2xl mx-auto backdrop-blur-lg bg-black/50 border border-white/10 rounded-xl p-4 shadow-lg">
+      <div className="flex items-center">
+        {/* Track Info */}
+        <div className="w-1/3 text-left">
+          <h2 className="text-base font-semibold text-white truncate">
+            {currentTrackName}
+          </h2>
+          <p className="text-xs font-normal text-white/50 truncate">
+            {currentTrackArtist}
+          </p>
         </div>
-        <span className="w-10">{formatTime(duration)}</span>
-      </div>
 
-      {/* Controls */}
-      <div className="flex justify-between items-center">
-        {/* Left Actions */}
-        <button 
-          className="p-3 rounded-full hover:bg-white/10 text-white/70 transition-colors"
-          title="Mic Mode (Experimental)"
-        >
-          <Mic size={20} />
-        </button>
-
-        {/* Main Playback */}
-        <div className="flex items-center gap-6">
-          <button onClick={onPrev} className="p-3 hover:text-accent transition-colors text-white/90">
-            <SkipBack size={24} />
-          </button>
-          
-          <button 
-            onClick={onTogglePlay}
-            className="w-14 h-14 flex items-center justify-center rounded-full bg-accent/10 border border-accent/20 text-accent hover:bg-accent/20 hover:shadow-[0_0_20px_rgba(0,255,255,0.3)] transition-all duration-300"
-          >
-            {isPlaying ? <Pause size={28} fill="currentColor" /> : <Play size={28} fill="currentColor" className="ml-1" />}
-          </button>
-          
-          <button onClick={onNext} className="p-3 hover:text-accent transition-colors text-white/90">
-            <SkipForward size={24} />
-          </button>
+        {/* Main Playback Controls */}
+        <div className="flex-1 flex flex-col items-center justify-center mx-4">
+          <div className="flex items-center gap-6 mb-2">
+            <button onClick={onPrev} className="p-2 text-white/70 hover:text-white transition-colors">
+              <SkipBack size={20} />
+            </button>
+            <button
+              onClick={onTogglePlay}
+              className="w-12 h-12 flex items-center justify-center rounded-full bg-accent text-black hover:bg-white transition-all transform hover:scale-105"
+            >
+              {isPlaying ? <Pause size={24} fill="currentColor" /> : <Play size={24} fill="currentColor" className="ml-1" />}
+            </button>
+            <button onClick={onNext} className="p-2 text-white/70 hover:text-white transition-colors">
+              <SkipForward size={20} />
+            </button>
+          </div>
+          {/* Progress Bar */}
+          <div className="w-full flex items-center gap-2 text-xs text-white/50">
+            <span>{formatTime(currentTime)}</span>
+            <div
+              ref={progressRef}
+              onClick={handleProgressClick}
+              className="flex-1 h-1.5 bg-white/10 rounded-full cursor-pointer group"
+            >
+              <div
+                className="h-full bg-accent rounded-full transition-all duration-100 ease-linear"
+                style={{ width: `${progressPercent}%` }}
+              />
+            </div>
+            <span>{formatTime(duration)}</span>
+          </div>
         </div>
 
         {/* Right Actions */}
-        <div className="flex items-center gap-2">
-           <div className="relative">
-             <input 
-                type="file" 
-                ref={fileInputRef}
-                className="hidden" 
-                multiple 
-                accept="audio/*, .mp3, .wav, .m4a, .flac, .ogg, .aac, audio/mpeg, audio/mp4, audio/x-m4a"
-                onChange={(e) => e.target.files && onUpload(e.target.files)}
-             />
-             <button 
-                onClick={() => fileInputRef.current?.click()}
-                className="p-3 rounded-full hover:bg-white/10 text-white/70 transition-colors"
-                title="Add Music"
-             >
-               <Plus size={20} />
-             </button>
-           </div>
-           
+        <div className="w-1/3 flex items-center justify-end gap-2">
+           <input
+              type="file"
+              ref={fileInputRef}
+              className="hidden"
+              multiple
+              accept="audio/*"
+              onChange={(e) => e.target.files && onUpload(e.target.files)}
+           />
+           <button
+              onClick={() => fileInputRef.current?.click()}
+              className="p-2 rounded-full hover:bg-white/10 text-white/70 transition-colors"
+              title="Add Music"
+           >
+             <Plus size={20} />
+           </button>
            <button 
              onClick={onShare}
-             className="p-3 rounded-full hover:bg-white/10 text-white/70 transition-colors"
-             title="Share Visualization"
+             className="p-2 rounded-full hover:bg-white/10 text-white/70 transition-colors"
+             title="Share"
            >
              <Share2 size={20} />
            </button>
