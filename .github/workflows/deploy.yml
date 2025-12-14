@@ -27,7 +27,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20 # 匹配现代 Vite 要求
+          node-version: 18 # 匹配现代 Vite 要求
           cache: 'npm' # 缓存依赖加速构建
 
       - name: Install dependencies
