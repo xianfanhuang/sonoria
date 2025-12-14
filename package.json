@@ -1,10 +1,10 @@
 {
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build", //先编译 TS，再构建
+    "build": "tsc && vite build",
     "preview": "vite preview",
-    "predeploy": "npm run build" //部署前自动构建
+    "predeploy": "npm run build"
   },
-  //新增：部署路径配置（适配 gh-pages）
+  
   "homepage": "https://xianfanhuang.github.io/sonoria/"
 }
