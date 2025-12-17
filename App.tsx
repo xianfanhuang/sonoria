@@ -296,8 +296,8 @@ function App() {
                 worker={workerRef.current}
               />
 
-              <EffectComposer disableNormalPass>
-                  <Bloom 
+              <EffectComposer multisampling={8}>
+                  <Bloom
                     luminanceThreshold={0.3}
                     mipmapBlur
                     intensity={1.0 + (audioData.high / 255) * 0.8}

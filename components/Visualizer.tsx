@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { Points, BufferGeometry, Float32BufferAttribute, AdditiveBlending, Color } from 'three';
+import { Points, BufferGeometry, Float32BufferAttribute, AdditiveBlending, Color, PointsMaterial } from 'three';
 import { CONFIG, THEME_COLORS } from '../constants';
 import { VisualizerParams, AudioData } from '../types';
 
@@ -11,9 +11,8 @@ interface VisualizerProps {
 }
 
 const Visualizer: React.FC<VisualizerProps> = ({ params, audioData, worker }) => {
-  const pointsRef = useRef<Points>(null);
+  const pointsRef = useRef<Points<BufferGeometry, PointsMaterial>>(null);
   const geometryRef = useRef<BufferGeometry>(null);
-  
   // Use a large buffer for the points
   const maxPoints = CONFIG.MAX_POINTS;
   const positions = useMemo(() => new Float32Array(maxPoints * 3), [maxPoints]);
@@ -71,7 +70,7 @@ const Visualizer: React.FC<VisualizerProps> = ({ params, audioData, worker }) =>
       
       // Shift hue slightly with highs
       const hueShift = (audioData.high / 255) * 0.1;
-      pointsRef.current.material.color.setHSL(hsl.h + hueShift, hsl.s, params.colorblind ? 0.8 : 0.6);
+      (pointsRef.current.material as PointsMaterial).color.setHSL(hsl.h + hueShift, hsl.s, params.colorblind ? 0.8 : 0.6);
       
       // Rotate the entire system slowly + extra rotation on mid range energy
       const time = Date.now() * 0.0001;
