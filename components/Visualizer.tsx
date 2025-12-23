@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { Points, BufferGeometry, Float32BufferAttribute, AdditiveBlending, Color } from 'three';
+import * as THREE from 'three';
 import { CONFIG, THEME_COLORS } from '../constants';
 import { VisualizerParams, AudioData } from '../types';
 
@@ -11,8 +11,8 @@ interface VisualizerProps {
 }
 
 const Visualizer: React.FC<VisualizerProps> = ({ params, audioData, worker }) => {
-  const pointsRef = useRef<Points>(null);
-  const geometryRef = useRef<BufferGeometry>(null);
+  const pointsRef = useRef<THREE.Points>(null);
+  const geometryRef = useRef<THREE.BufferGeometry>(null);
   
   // Use a large buffer for the points
   const maxPoints = CONFIG.MAX_POINTS;
@@ -27,7 +27,7 @@ const Visualizer: React.FC<VisualizerProps> = ({ params, audioData, worker }) =>
       const newPoints = e.data.points as Float32Array;
       if (!geometryRef.current) return;
 
-      const positionAttribute = geometryRef.current.attributes.position as Float32BufferAttribute;
+      const positionAttribute = geometryRef.current.attributes.position as THREE.Float32BufferAttribute;
       const array = positionAttribute.array as Float32Array;
 
       // Append new points to the circular buffer
@@ -65,13 +65,16 @@ const Visualizer: React.FC<VisualizerProps> = ({ params, audioData, worker }) =>
     }
 
     if (pointsRef.current) {
-      const baseColor = new Color(THEME_COLORS[params.mood]);
+      // Cast material to access color property safely
+      const material = pointsRef.current.material as THREE.PointsMaterial;
+
+      const baseColor = new THREE.Color(THEME_COLORS[params.mood]);
       const hsl = { h: 0, s: 0, l: 0 };
       baseColor.getHSL(hsl);
       
       // Shift hue slightly with highs
       const hueShift = (audioData.high / 255) * 0.1;
-      pointsRef.current.material.color.setHSL(hsl.h + hueShift, hsl.s, params.colorblind ? 0.8 : 0.6);
+      material.color.setHSL(hsl.h + hueShift, hsl.s, params.colorblind ? 0.8 : 0.6);
       
       // Rotate the entire system slowly + extra rotation on mid range energy
       const time = Date.now() * 0.0001;
@@ -102,7 +105,7 @@ const Visualizer: React.FC<VisualizerProps> = ({ params, audioData, worker }) =>
         color={THEME_COLORS[params.mood]}
         transparent
         opacity={0.8}
-        blending={AdditiveBlending}
+        blending={THREE.AdditiveBlending}
         sizeAttenuation={false}
         depthWrite={false}
       />
