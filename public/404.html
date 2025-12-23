@@ -3,11 +3,19 @@
   <head>
     <meta charset="utf-8">
     <title>Redirecting...</title>
-    <script>
-      sessionStorage.redirect = location.href;
+    <script type="text/javascript">
+      // Capture the path and search query the user tried to access.
+      const redirect = window.location.pathname + window.location.search;
+
+      // Store the captured path in sessionStorage.
+      sessionStorage.setItem('redirect', redirect);
+
+      // Redirect to the root of the application, where the index.html script
+      // will read the stored path and update the URL.
+      window.location.href = '/sonoria/';
     </script>
-    <meta http-equiv="refresh" content="0;URL='/sonoria/'"></meta>
   </head>
   <body>
+    <p>If you are not redirected automatically, please <a href="/sonoria/">click here</a>.</p>
   </body>
 </html>

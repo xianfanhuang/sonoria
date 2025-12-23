@@ -103,6 +103,9 @@ export class AudioEngine {
       return { bass: 0, mid: 0, high: 0, energy: 0 };
     }
 
+    // @ts-ignore - In some TypeScript versions, there can be a mismatch between
+    // the required ArrayBuffer type and the provided ArrayBufferLike type from dependencies.
+    // This is a known workaround for compatibility.
     this.analyser.getByteFrequencyData(this.dataArray);
 
     // Calculate energy bands
