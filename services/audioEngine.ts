@@ -103,6 +103,7 @@ export class AudioEngine {
       return { bass: 0, mid: 0, high: 0, energy: 0 };
     }
 
+    // @ts-ignore - TS versions can be finicky about ArrayBufferLike vs ArrayBuffer
     this.analyser.getByteFrequencyData(this.dataArray);
 
     // Calculate energy bands
