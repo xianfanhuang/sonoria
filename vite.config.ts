@@ -12,7 +12,5 @@ export default defineConfig({
     sourcemap: false, // 生产环境关闭 sourcemap 减小产物体积
   },
   // 可选：如果是路由应用，需配置 base（适配 gh-pages 路径）
-  base: process.env.NODE_ENV === 'production' 
-    ? '/sonoria/'  // 仓库名，必须匹配
-    : '/',
+  base: '/sonoria/',
 });
