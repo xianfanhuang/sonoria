@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { Play, Pause, SkipBack, SkipForward, Mic, Share2, Plus } from 'lucide-react';
+import { Play, Pause, SkipBack, SkipForward, Share2, Plus } from 'lucide-react';
 import { AudioEngine } from '../../services/audioEngine';
 
 interface ControlBarProps {
