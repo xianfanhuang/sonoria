@@ -1,7 +1,7 @@
 import React from 'react';
 import { clsx } from 'clsx';
 import { Palette, X } from 'lucide-react';
-import { VisualizerParams, Mood, WorkerInput } from '../../types';
+import { VisualizerParams, Mood } from '../../types';
 import { MOODS } from '../../constants';
 
 interface SidePanelProps {
