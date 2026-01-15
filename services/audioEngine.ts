@@ -103,7 +103,7 @@ export class AudioEngine {
       return { bass: 0, mid: 0, high: 0, energy: 0 };
     }
 
-    this.analyser.getByteFrequencyData(this.dataArray);
+    this.analyser.getByteFrequencyData(this.dataArray as any);
 
     // Calculate energy bands
     // Helper to average range
