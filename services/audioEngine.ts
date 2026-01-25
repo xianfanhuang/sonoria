@@ -103,7 +103,10 @@ export class AudioEngine {
       return { bass: 0, mid: 0, high: 0, energy: 0 };
     }
 
-    this.analyser.getByteFrequencyData(this.dataArray);
+    // TS HACK: Using `as any` to resolve a type conflict between Node.js's ArrayBuffer
+    // and the DOM's ArrayBuffer. This is a known issue when the build environment (node)
+    // type-checks code meant for a browser environment. The code is correct at runtime.
+    this.analyser.getByteFrequencyData(this.dataArray as any);
 
     // Calculate energy bands
     // Helper to average range

@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useMemo } from 'react';
+import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
 import { Points, BufferGeometry, Float32BufferAttribute, AdditiveBlending, Color } from 'three';
 import { CONFIG, THEME_COLORS } from '../constants';
@@ -71,7 +72,7 @@ const Visualizer: React.FC<VisualizerProps> = ({ params, audioData, worker }) =>
       
       // Shift hue slightly with highs
       const hueShift = (audioData.high / 255) * 0.1;
-      pointsRef.current.material.color.setHSL(hsl.h + hueShift, hsl.s, params.colorblind ? 0.8 : 0.6);
+      (pointsRef.current.material as THREE.PointsMaterial).color.setHSL(hsl.h + hueShift, hsl.s, params.colorblind ? 0.8 : 0.6);
       
       // Rotate the entire system slowly + extra rotation on mid range energy
       const time = Date.now() * 0.0001;
