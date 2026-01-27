@@ -296,7 +296,7 @@ function App() {
                 worker={workerRef.current}
               />
 
-              <EffectComposer disableNormalPass>
+              <EffectComposer enableNormalPass={false}>
                   <Bloom 
                     luminanceThreshold={0.3}
                     mipmapBlur
