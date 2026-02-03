@@ -11,6 +11,8 @@ node_modules
 dist
 dist-ssr
 *.local
+gh-pages/
+gh-pages-clone/
 
 # Editor directories and files
 .vscode/*
