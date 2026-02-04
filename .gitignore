@@ -17,6 +17,8 @@ dist-ssr
 !.vscode/extensions.json
 .idea
 .DS_Store
+gh-pages/
+gh-pages-clone/
 *.suo
 *.ntvs*
 *.njsproj
