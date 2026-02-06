@@ -1,5 +1,5 @@
-import { Mood } from './constants';
-export { Mood };
+import type { Mood } from './constants';
+export type { Mood };
 
 export interface AudioData {
   bass: number;

@@ -1,9 +1,12 @@
 {
+  "name": "sonoria",
+  "version": "1.0.0",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "predeploy": "npm run build"
+    "predeploy": "npm run build",
+    "test": "playwright test"
   },
   
   "homepage": "https://xianfanhuang.github.io/sonoria/",
@@ -22,6 +25,7 @@
     "@types/three": "^0.165.0",
     "@vitejs/plugin-react": "^4.0.3",
     "typescript": "^5.0.2",
-    "vite": "^4.4.5"
+    "vite": "^4.4.5",
+    "@types/node": "^18.0.0"
   }
 }
