@@ -957,16 +957,19 @@ stack(
         return t ? t.color : '#fff';
     };
 
-    HydraVisualizer.prototype.applyStyle = function(styleId) {
+    // 统一风格切换接口（Canvas 2D 和 WebGL 都通过这里）
+    HydraVisualizer.prototype.setStyle = function(styleId) {
         if (this.transitioning) return;
         var self = this;
         var style = visualStyles.find(function(st) { return st.id === styleId; });
         if (!style) return;
         
-        // Canvas 2D fallback mode - just update state and notify
+        // 统一设置状态（不管哪种模式都先设置）
+        this.currentStyle = style;
+        state.mode = styleId;
+        
+        // Canvas 2D fallback 模式：状态已更新，等下一帧自动渲染
         if (this.useFallback) {
-            this.currentStyle = style;
-            state.mode = styleId;
             this.updateStyleGrid();
             showToast('Canvas模式: ' + style.name);
             return;
@@ -978,12 +981,11 @@ stack(
                 return st.performanceLevel <= window.webglSupport.level; 
             }) || visualStyles[0];
             showToast('设备性能不足，已切换到 ' + fallback.name);
-            return this.applyStyle(fallback.id);
+            return this.setStyle(fallback.id);
         }
         
+        // WebGL 模式：立即渲染
         this.transitioning = true;
-        this.currentStyle = style;
-        state.mode = styleId;
         this.canvas.style.opacity = '0';
         setTimeout(function() {
             try {
@@ -1003,6 +1005,9 @@ stack(
             showToast('风格: ' + style.name);
         }, 300);
     };
+    
+    // 向后兼容：保留 applyStyle 别名
+    HydraVisualizer.prototype.applyStyle = HydraVisualizer.prototype.setStyle;
 
     HydraVisualizer.prototype.getSmartStyle = function() {
         var self = this;
