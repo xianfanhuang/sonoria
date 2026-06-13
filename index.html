@@ -1076,15 +1076,47 @@ stack(
             state.analyser.fftSize = 2048;
             state.analyser.smoothingTimeConstant = 0.8;
         }
-        if (state.ctx.state === 'suspended') state.ctx.resume();
+        if (state.ctx.state === 'suspended') {
+            state.ctx.resume().catch(function(e) {
+                console.warn('AudioContext resume failed:', e);
+            });
+        }
+    };
+    
+    // 异步初始化 AudioContext，确保 resume 完成
+    AudioEngine.prototype.initContextAsync = function() {
+        var self = this;
+        return new Promise(function(resolve) {
+            if (!state.ctx) {
+                state.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                state.analyser = state.ctx.createAnalyser();
+                state.analyser.fftSize = 2048;
+                state.analyser.smoothingTimeConstant = 0.8;
+            }
+            if (state.ctx.state === 'suspended') {
+                state.ctx.resume().then(resolve).catch(function(e) {
+                    console.warn('AudioContext resume failed:', e);
+                    resolve();
+                });
+            } else {
+                resolve();
+            }
+        });
     };
 
     AudioEngine.prototype.playUrl = function(url) {
         if (!url) return;
         var self = this;
         this.stop(false);
-        this.initContext();
         showToast('正在请求音频流...');
+        
+        this.initContextAsync().then(function() {
+            self._doPlayUrl(url);
+        });
+    };
+    
+    AudioEngine.prototype._doPlayUrl = function(url) {
+        var self = this;
         var fileName = url.split('/').pop().split('?')[0] || 'Network Stream';
         state.playlist.push({ name: fileName, src: url, isUrl: true });
         state.trackIdx = state.playlist.length - 1;
@@ -1148,24 +1180,29 @@ stack(
         state.trackIdx = idx;
         var track = state.playlist[idx];
         this.stop(false);
-        this.initContext();
-        state.audioEl = new Audio(track.src);
-        state.audioEl.crossOrigin = 'anonymous';
-        state.audioEl.onended = function() { self.playNext(); };
-        try {
-            state.src = state.ctx.createMediaElementSource(state.audioEl);
-            state.src.connect(state.analyser);
-        } catch (e) {
-            console.warn('Viz connect fail');
-        }
-        state.audioEl.play()
-            .then(function() {
-                self._bindEvents(state.audioEl);
-                self.updateMeta(track.name, 'Track ' + (idx + 1) + ' / ' + state.playlist.length);
-                self.startUI();
-                self.renderPlaylist();
-            })
-            .catch(function() { showToast('播放失败'); });
+        
+        this.initContextAsync().then(function() {
+            state.audioEl = new Audio(track.src);
+            state.audioEl.crossOrigin = 'anonymous';
+            state.audioEl.onended = function() { self.playNext(); };
+            try {
+                state.src = state.ctx.createMediaElementSource(state.audioEl);
+                state.src.connect(state.analyser);
+            } catch (e) {
+                console.warn('Viz connect fail');
+            }
+            state.audioEl.play()
+                .then(function() {
+                    self._bindEvents(state.audioEl);
+                    self.updateMeta(track.name, 'Track ' + (idx + 1) + ' / ' + state.playlist.length);
+                    self.startUI();
+                    self.renderPlaylist();
+                })
+                .catch(function(e) { 
+                    console.error('Play failed:', e);
+                    showToast('播放失败'); 
+                });
+        });
     };
 
     AudioEngine.prototype.playNext = function() {
@@ -1182,31 +1219,41 @@ stack(
         var self = this;
         if (state.mic) { this.stop(); return; }
         this.stop();
-        this.initContext();
-        navigator.mediaDevices.getUserMedia({ audio: true })
-            .then(function(stream) {
-                state.micStream = stream;
-                state.src = state.ctx.createMediaStreamSource(stream);
-                state.src.connect(state.analyser);
-                state.mic = true;
-                self.updateMeta('Air Resonance', 'Listening...');
-                ui.mic.classList.add('active');
-                self.startUI();
-            })
-            .catch(function() { showToast('需要麦克风权限'); });
+        this.initContextAsync().then(function() {
+            navigator.mediaDevices.getUserMedia({ audio: true })
+                .then(function(stream) {
+                    state.micStream = stream;
+                    state.src = state.ctx.createMediaStreamSource(stream);
+                    state.src.connect(state.analyser);
+                    state.mic = true;
+                    self.updateMeta('Air Resonance', 'Listening...');
+                    ui.mic.classList.add('active');
+                    self.startUI();
+                })
+                .catch(function() { showToast('需要麦克风权限'); });
+        });
     };
 
     AudioEngine.prototype.togglePlay = function() {
-        this.initContext();
-        if (state.mic) { this.toggleMic(); return; }
-        if (state.strudelPlaying) { stopStrudel(); return; }
-        if (!state.audioEl) {
-            if (state.playlist.length > 0) this.playTrack(state.trackIdx);
-            else { toggleDrawer('input-drawer'); showToast('请添加音乐或运行Strudel代码'); }
-            return;
-        }
-        if (state.playing) { state.audioEl.pause(); this.stopUI(); }
-        else { state.audioEl.play(); this.startUI(); }
+        var self = this;
+        this.initContextAsync().then(function() {
+            if (state.mic) { self.toggleMic(); return; }
+            if (state.strudelPlaying) { stopStrudel(); return; }
+            if (!state.audioEl) {
+                if (state.playlist.length > 0) self.playTrack(state.trackIdx);
+                else { toggleDrawer('input-drawer'); showToast('请添加音乐或运行Strudel代码'); }
+                return;
+            }
+            if (state.playing) { state.audioEl.pause(); self.stopUI(); }
+            else { 
+                state.audioEl.play().then(function() {
+                    self.startUI();
+                }).catch(function(e) {
+                    console.error('Play failed:', e);
+                    showToast('播放被阻止，请再次点击');
+                });
+            }
+        });
     };
 
     AudioEngine.prototype.stop = function(clear) {
