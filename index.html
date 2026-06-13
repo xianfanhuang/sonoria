@@ -503,10 +503,15 @@ stack(
             var self = this;
             this.canvas.addEventListener('webglcontextlost', function(e) {
                 e.preventDefault();
-                console.log('WebGL context lost');
+                console.log('WebGL context lost, switching to Canvas 2D fallback');
                 self.isContextLost = true;
                 self.hydra = null;
-                showToast('可视化暂停，点击播放恢复');
+                self.useFallback = true;
+                self._initCanvas2D();
+                showToast('已切换到兼容模式');
+                if (state.playing && !self.audioLoopId) {
+                    self.start();
+                }
             }, false);
             
             this.canvas.addEventListener('webglcontextrestored', function() {
@@ -527,18 +532,43 @@ stack(
     // Canvas 2D Fallback
     HydraVisualizer.prototype._initCanvas2D = function() {
         this.useFallback = true;
-        this.ctx2d = this.canvas.getContext('2d');
-        this.canvas.width = window.innerWidth;
-        this.canvas.height = window.innerHeight;
-        console.log('Canvas 2D fallback initialized');
+        
+        // 创建独立的 2D canvas（避免与 WebGL 上下文冲突）
+        if (!this.canvas2d) {
+            this.canvas2d = document.createElement('canvas');
+            this.canvas2d.id = 'visualizer-2d';
+            this.canvas2d.style.cssText = this.canvas.style.cssText;
+            this.canvas2d.style.position = 'fixed';
+            this.canvas2d.style.top = '0';
+            this.canvas2d.style.left = '0';
+            this.canvas2d.style.width = '100%';
+            this.canvas2d.style.height = '100%';
+            this.canvas2d.style.zIndex = '1';
+            this.canvas2d.style.opacity = '0';
+            this.canvas2d.style.transition = 'opacity 0.5s ease';
+            this.canvas.parentNode.insertBefore(this.canvas2d, this.canvas.nextSibling);
+        }
+        
+        this.ctx2d = this.canvas2d.getContext('2d');
+        this.canvas2d.width = window.innerWidth;
+        this.canvas2d.height = window.innerHeight;
+        
+        // 隐藏 WebGL canvas，显示 2D canvas
+        this.canvas.style.opacity = '0';
+        this.canvas2d.style.opacity = '1';
+        
+        // 切换渲染目标引用
+        this._renderCanvas = this.canvas2d;
+        
+        console.log('Canvas 2D fallback initialized with dedicated canvas');
     };
 
     HydraVisualizer.prototype.renderCanvas2D = function() {
         if (!this.ctx2d || !state.analyser) return;
         
         var ctx = this.ctx2d;
-        var width = this.canvas.width;
-        var height = this.canvas.height;
+        var width = this.canvas2d.width;
+        var height = this.canvas2d.height;
         var data = this.audioBuffer;
         var style = state.mode || 'aurora';
         
@@ -851,14 +881,18 @@ stack(
 
     HydraVisualizer.prototype.resize = function() {
         if (this.hydra) this.hydra.resize(window.innerWidth, window.innerHeight);
-        if (this.ctx2d) {
-            this.canvas.width = window.innerWidth;
-            this.canvas.height = window.innerHeight;
+        if (this.ctx2d && this.canvas2d) {
+            this.canvas2d.width = window.innerWidth;
+            this.canvas2d.height = window.innerHeight;
         }
     };
 
     HydraVisualizer.prototype.start = function() {
         if (this.useFallback) {
+            // 确保 2D canvas 可见
+            if (this.canvas2d) {
+                this.canvas2d.style.opacity = '1';
+            }
             this.updateAudioLoop();
             return;
         }
@@ -873,6 +907,10 @@ stack(
             if (this.audioLoopId) {
                 cancelAnimationFrame(this.audioLoopId);
                 this.audioLoopId = null;
+            }
+            // 清除 2D canvas 内容
+            if (this.ctx2d && this.canvas2d) {
+                this.ctx2d.clearRect(0, 0, this.canvas2d.width, this.canvas2d.height);
             }
             return;
         }
