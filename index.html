@@ -11,12 +11,10 @@
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎐</text></svg>">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-
     <!-- Hydra 可视化引擎 -->
     <script src="hydra-synth.min.js"></script>
     <!-- Strudel 实时音乐引擎 -->
     <script src="strudel.js"></script>
-
     <style>
         :root {
             --primary: #8E2DE2;
@@ -36,7 +34,6 @@
         body { background: var(--bg-deep); color: var(--text-main); font-family: 'Inter', sans-serif; overflow: hidden; height: 100vh; width: 100vw; user-select: none; position: fixed; }
         #visualizer { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; filter: contrast(1.2) brightness(1.1); transition: opacity 1s ease; }
         .vignette { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: radial-gradient(circle at center, transparent 30%, rgba(0,0,0,0.6) 100%); z-index: 2; pointer-events: none; }
-
         .app-shell { position: relative; z-index: 10; height: 100vh; width: 100vw; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: var(--safe-top) 20px var(--safe-bottom); transition: all 0.8s var(--ease-smooth); perspective: 1000px; }
         .lens-card { width: 100%; max-width: 380px; background: var(--glass); backdrop-filter: blur(40px) saturate(180%); -webkit-backdrop-filter: blur(40px) saturate(180%); border: 1px solid var(--border); border-top: 1px solid var(--highlight); border-radius: 40px; padding: 32px 28px; display: flex; flex-direction: column; gap: 24px; box-shadow: 0 30px 80px -20px rgba(0,0,0,0.5); transform-style: preserve-3d; transition: all 0.8s var(--ease-smooth); will-change: transform, opacity; }
         .header { display: flex; justify-content: space-between; align-items: center; opacity: 0.9; }
@@ -62,7 +59,6 @@
         #mic-btn.active { color: #00d2ff; text-shadow: 0 0 15px rgba(0, 210, 255, 0.6); }
         .drawer { height: 0; overflow: hidden; transition: 0.5s var(--ease-smooth); opacity: 0; background: rgba(0,0,0,0.2); border-radius: 20px; }
         .drawer.open { height: auto; opacity: 1; margin-top: 16px; padding: 16px; border: 1px solid var(--border); }
-
         .glass-input {
             width: 100%; background: rgba(255,255,255,0.08); border: 1px solid transparent;
             padding: 14px; border-radius: 12px; color: #fff; margin-bottom: 10px;
@@ -71,7 +67,6 @@
             resize: vertical;
         }
         .glass-input:focus { border-color: var(--accent); background: rgba(255,255,255,0.12); }
-
         .full-btn { width: 100%; padding: 12px; background: var(--primary); border: none; border-radius: 12px; color: #fff; font-weight: 600; cursor: pointer; transition: 0.3s; }
         .full-btn:active { transform: scale(0.98); opacity: 0.85; }
         .full-btn.secondary { background: var(--border); margin-top: 8px; }
@@ -92,9 +87,7 @@
         .capsule-btn:active { background: rgba(255,255,255,0.2); }
         .toast { position: fixed; top: calc(20px + var(--safe-top)); left: 50%; transform: translateX(-50%) translateY(-20px); background: rgba(20,20,20,0.8); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.1); padding: 10px 20px; border-radius: 30px; font-size: 0.85rem; color: #fff; opacity: 0; transition: 0.4s var(--ease-elastic); z-index: 1000; pointer-events: none; display: flex; align-items: center; gap: 8px; white-space: nowrap; }
         .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-
         input[type="file"] { display: none; }
-
         .style-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
@@ -115,7 +108,29 @@
         .style-name { font-size: 0.85rem; font-weight: 500; margin-bottom: 2px; }
         .style-desc { font-size: 0.7rem; color: var(--text-sub); }
         .style-category { font-size: 0.65rem; color: var(--accent); margin-top: 4px; }
-
+        /* Loading indicator */
+        #loading-indicator {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 9999;
+            background: rgba(0,0,0,0.8);
+            padding: 20px 40px;
+            border-radius: 20px;
+            text-align: center;
+            transition: opacity 0.5s;
+        }
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(255,255,255,0.1);
+            border-top-color: #00d2ff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
         /* Breathing animation for playing state */
         .lens-card.breathing {
             animation: breathe 4s ease-in-out infinite;
@@ -124,7 +139,6 @@
             0%, 100% { box-shadow: 0 30px 80px -20px rgba(0,0,0,0.5); }
             50% { box-shadow: 0 30px 80px -20px rgba(142,45,226,0.3); }
         }
-
         /* Scrollbar */
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-track { background: transparent; }
@@ -132,6 +146,10 @@
     </style>
 </head>
 <body>
+    <div id="loading-indicator">
+        <div class="spinner"></div>
+        <span style="color: #fff; font-size: 0.9rem;">初始化可视化引擎...</span>
+    </div>
     <canvas id="visualizer"></canvas>
     <div class="vignette"></div>
     <div class="app-shell" id="app-shell">
@@ -227,24 +245,43 @@ stack(
     </div>
     <div class="toast" id="toast"><span id="toast-msg">Ready</span></div>
     <input type="file" id="file-input" accept="audio/wav,audio/mp3,audio/m4a,audio/*" multiple>
-
     <script>
-    // === SONORIA V5.5 — Fixed & Optimized ===
+    // === SONORIA V5.6 — WebGL Fix & Canvas Fallback ===
+    // WebGL Support Detection
+    window.webglSupport = { available: false, level: 0 };
+    (function() {
+        try {
+            var canvas = document.createElement('canvas');
+            var gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+            if (gl) {
+                window.webglSupport.available = true;
+                var debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
+                var renderer = debugInfo ? gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL) : '';
+                if (/PowerVR|Mali-4|Mali-T|Intel.*HD.*[0-5]/.test(renderer)) {
+                    window.webglSupport.level = 1;
+                } else if (/Apple GPU|Adreno [6-9]|Mali-G[7-9]|NVIDIA|AMD/.test(renderer)) {
+                    window.webglSupport.level = 3;
+                } else {
+                    window.webglSupport.level = 2;
+                }
+            }
+        } catch(e) { console.log('WebGL detection failed'); }
+    })();
 
-    // ─── State ───
+    // State
     var state = {
         playing: false, mic: false, mode: 'aurora', zenTimer: null,
         ctx: null, analyser: null, src: null, audioEl: null,
         playlist: [], trackIdx: 0, touchStartX: 0,
         strudelPlaying: false,
-        devicePerformance: 2,
+        devicePerformance: window.webglSupport.level || 2,
         micStream: null
     };
 
-    // ─── 20+ Visualization Styles ───
+    // Visualization Styles with GPU requirements
     var visualStyles = [
         {
-            id: "aurora", name: "极光", category: "自然",
+            id: "aurora", name: "极光", category: "自然", gpuReq: "medium",
             description: "流动的彩色光带",
             energyRange: [0, 1], bpmRange: [60, 180], performanceLevel: 2,
             render: function(hue, low, mid, high, energy) {
@@ -257,7 +294,7 @@ stack(
             }
         },
         {
-            id: "cosmic", name: "宇宙", category: "宇宙",
+            id: "cosmic", name: "宇宙", category: "宇宙", gpuReq: "low",
             description: "闪烁的星空粒子",
             energyRange: [0, 0.7], bpmRange: [60, 140], performanceLevel: 1,
             render: function(hue, low, mid, high, energy) {
@@ -270,7 +307,7 @@ stack(
             }
         },
         {
-            id: "neural", name: "神经", category: "几何",
+            id: "neural", name: "神经", category: "几何", gpuReq: "high",
             description: "动态神经网络",
             energyRange: [0.3, 1], bpmRange: [90, 160], performanceLevel: 3,
             render: function(hue, low, mid, high, energy) {
@@ -283,7 +320,7 @@ stack(
             }
         },
         {
-            id: "liquid", name: "液体", category: "流体",
+            id: "liquid", name: "液体", category: "流体", gpuReq: "medium",
             description: "液态金属波纹",
             energyRange: [0.2, 0.9], bpmRange: [80, 160], performanceLevel: 2,
             render: function(hue, low, mid, high, energy) {
@@ -296,7 +333,7 @@ stack(
             }
         },
         {
-            id: "spectrum", name: "频谱", category: "频谱",
+            id: "spectrum", name: "频谱", category: "频谱", gpuReq: "low",
             description: "响应式频谱柱",
             energyRange: [0, 1], bpmRange: [60, 200], performanceLevel: 1,
             render: function(hue, low, mid, high, energy) {
@@ -308,151 +345,43 @@ stack(
             }
         },
         {
-            id: "nebula", name: "星云", category: "宇宙",
+            id: "nebula", name: "星云", category: "宇宙", gpuReq: "medium",
             description: "流动的星云气体",
             energyRange: [0, 0.5], bpmRange: [60, 120], performanceLevel: 2,
             render: function(hue, low, mid, high, energy) {
-                s.noise(2, 0.3)
-                  .modulate(s.osc(1, 0.1, function() { return low * 2; }), 0.5)
-                  .color(function() { return hue % 360 / 360; }, 0.7, 0.6)
-                  .blend(s.noise(3, 0.2).color(function() { return (hue % 360 / 360 + 0.2) % 1; }, 0.6, 0.7), 0.4)
+                s.osc(5, 0.2, function() { return low; })
+                  .modulate(s.noise(2, 0.3), 0.5)
+                  .color(0.8, 0.3, 0.9)
+                  .brightness(function() { return energy * 0.2; })
                   .out();
             }
         },
         {
-            id: "fractal", name: "分形", category: "数学",
-            description: "无限递归的分形图案",
-            energyRange: [0.1, 0.8], bpmRange: [70, 150], performanceLevel: 3,
+            id: "crystal", name: "水晶", category: "几何", gpuReq: "medium",
+            description: "折射的水晶结构",
+            energyRange: [0.2, 0.8], bpmRange: [70, 150], performanceLevel: 2,
             render: function(hue, low, mid, high, energy) {
-                s.osc(3, 0.1, function() { return mid; })
-                  .kaleid(4)
-                  .modulate(s.noise(2, 0.3), function() { return energy * 0.3; })
-                  .color(function() { return hue % 360 / 360; }, 0.8, 0.5)
-                  .out();
-            }
-        },
-        {
-            id: "waveform", name: "波形", category: "频谱",
-            description: "实时音频波形",
-            energyRange: [0, 1], bpmRange: [60, 200], performanceLevel: 1,
-            render: function(hue, low, mid, high, energy) {
-                s.noise(128, 0.02)
-                  .thresh(function() { return 0.45 + energy * 0.3; })
-                  .color(1, 1, 1)
-                  .mult(s.osc(1, 0.1, function() { return low; }))
-                  .out();
-            }
-        },
-        {
-            id: "fire", name: "火焰", category: "自然",
-            description: "跳动的火焰效果",
-            energyRange: [0.4, 1], bpmRange: [100, 180], performanceLevel: 2,
-            render: function(hue, low, mid, high, energy) {
-                s.noise(5, 0.4)
-                  .thresh(0.3)
-                  .color(0.05, 0.8, 0.6)
-                  .add(s.noise(4, 0.3).thresh(0.5).color(0.1, 1, 0.8), 0.5)
-                  .scrollY(function() { return -0.1 - energy * 0.1; })
-                  .out();
-            }
-        },
-        {
-            id: "rain", name: "雨幕", category: "自然",
-            description: "下落的雨滴线条",
-            energyRange: [0, 0.6], bpmRange: [60, 130], performanceLevel: 1,
-            render: function(hue, low, mid, high, energy) {
-                s.shape(1, 0.005, 0)
-                  .repeat(50, 1)
-                  .scrollY(function() { return 0.05 + high * 0.1; })
-                  .color(0.6, 0.8, 1)
-                  .out();
-            }
-        },
-        {
-            id: "crystal", name: "水晶", category: "几何",
-            description: "旋转的水晶棱镜",
-            energyRange: [0.2, 0.7], bpmRange: [80, 140], performanceLevel: 2,
-            render: function(hue, low, mid, high, energy) {
-                s.shape(6, 0.3, 0.1)
-                  .rotate(function() { return time * 0.1 + mid * 0.5; })
-                  .kaleid(3)
-                  .color(function() { return hue % 360 / 360; }, 0.6, 0.7)
-                  .out();
-            }
-        },
-        {
-            id: "plasma", name: "等离子", category: "流体",
-            description: "沸腾的等离子体",
-            energyRange: [0.5, 1], bpmRange: [120, 180], performanceLevel: 3,
-            render: function(hue, low, mid, high, energy) {
-                s.osc(10, 0.2, function() { return low * 3; })
-                  .add(s.osc(8, 0.15, function() { return mid * 2; }))
-                  .modulate(s.noise(3, 0.5), 0.3)
-                  .color(function() { return hue % 360 / 360; }, 1, 0.5)
-                  .out();
-            }
-        },
-        {
-            id: "grid", name: "网格", category: "几何",
-            description: "透视网格空间",
-            energyRange: [0.3, 0.9], bpmRange: [90, 160], performanceLevel: 2,
-            render: function(hue, low, mid, high, energy) {
-                s.shape(4, 0.01, 0)
-                  .repeat(20, 20)
-                  .scrollY(function() { return 0.02 + energy * 0.05; })
-                  .color(function() { return hue % 360 / 360; }, 0.5, 0.7)
-                  .out();
-            }
-        },
-        {
-            id: "spiral", name: "螺旋", category: "数学",
-            description: "无限延伸的螺旋",
-            energyRange: [0.1, 0.8], bpmRange: [70, 150], performanceLevel: 2,
-            render: function(hue, low, mid, high, energy) {
-                s.osc(2, 0.1, function() { return mid; })
-                  .polar(2, 0.5)
-                  .rotate(function() { return time * 0.2; })
-                  .color(function() { return hue % 360 / 360; }, 0.7, 0.6)
-                  .out();
-            }
-        },
-        {
-            id: "glitch", name: "故障", category: "数字",
-            description: "数字故障艺术",
-            energyRange: [0.4, 1], bpmRange: [100, 180], performanceLevel: 2,
-            render: function(hue, low, mid, high, energy) {
-                s.noise(10, 0.3)
-                  .modulatePixelate(s.noise(2, 0.2), function() { return 10 + low * 50; })
-                  .color(function() { return hue % 360 / 360; }, 0.8, 0.5)
-                  .out();
-            }
-        },
-        {
-            id: "aurora2", name: "极光II", category: "自然",
-            description: "双层极光效果",
-            energyRange: [0, 0.6], bpmRange: [60, 120], performanceLevel: 2,
-            render: function(hue, low, mid, high, energy) {
-                s.osc(5, 0.05, function() { return low; })
+                s.shape(6, 0.1, 0)
                   .rotate(function() { return time * 0.1; })
-                  .color(function() { return hue % 360 / 360; }, 0.8, 0.6)
-                  .blend(s.osc(6, 0.05, function() { return mid; }).color(function() { return (hue % 360 / 360 + 0.3) % 1; }, 0.7, 0.5), 0.5)
+                  .scale(function() { return 0.8 + mid * 0.4; })
+                  .color(function() { return hue % 360 / 360; }, 0.7, 0.8)
                   .out();
             }
         },
         {
-            id: "stars", name: "繁星", category: "宇宙",
-            description: "闪烁的满天星斗",
-            energyRange: [0, 0.4], bpmRange: [60, 100], performanceLevel: 1,
+            id: "matrix", name: "矩阵", category: "数字", gpuReq: "low",
+            description: "数字雨效果",
+            energyRange: [0.1, 0.9], bpmRange: [80, 180], performanceLevel: 1,
             render: function(hue, low, mid, high, energy) {
-                s.noise(200, 0.1)
-                  .thresh(0.7)
-                  .color(1, 1, 1)
+                s.noise(200, 0.05)
+                  .thresh(0.8)
+                  .color(0, 1, 0)
                   .add(s.noise(150, 0.1).thresh(0.8).color(0.8, 0.9, 1), 0.5)
                   .out();
             }
         },
         {
-            id: "flow", name: "流动", category: "流体",
+            id: "flow", name: "流动", category: "流体", gpuReq: "high",
             description: "平滑的流体运动",
             energyRange: [0.2, 0.8], bpmRange: [80, 140], performanceLevel: 3,
             render: function(hue, low, mid, high, energy) {
@@ -464,7 +393,7 @@ stack(
             }
         },
         {
-            id: "pulse", name: "脉冲", category: "几何",
+            id: "pulse", name: "脉冲", category: "几何", gpuReq: "low",
             description: "中心扩散的脉冲波",
             energyRange: [0.3, 1], bpmRange: [90, 160], performanceLevel: 1,
             render: function(hue, low, mid, high, energy) {
@@ -475,7 +404,7 @@ stack(
             }
         },
         {
-            id: "vortex", name: "漩涡", category: "流体",
+            id: "vortex", name: "漩涡", category: "流体", gpuReq: "medium",
             description: "旋转的能量漩涡",
             energyRange: [0.4, 1], bpmRange: [100, 180], performanceLevel: 2,
             render: function(hue, low, mid, high, energy) {
@@ -487,12 +416,11 @@ stack(
             }
         }
     ];
-
     var themes = visualStyles.map(function(st) {
         return { id: st.id, name: st.name, color: 'hsl(' + Math.random() * 360 + ', 80%, 60%)' };
     });
 
-    // ─── DOM refs ───
+    // DOM refs
     var ui = {
         shell: document.getElementById('app-shell'),
         card: document.getElementById('card'),
@@ -512,7 +440,7 @@ stack(
         styleGrid: document.getElementById('style-grid')
     };
 
-    // ─── Toast ───
+    // Toast
     function showToast(m) {
         document.getElementById('toast-msg').innerText = m;
         var t = document.getElementById('toast');
@@ -521,46 +449,151 @@ stack(
         t._timer = setTimeout(function() { t.classList.remove('show'); }, 2000);
     }
 
-    // ─── Hydra Visualizer ───
-    var viz = null; // initialized after DOM refs
+    // Hide loading indicator
+    function hideLoading() {
+        var loader = document.getElementById('loading-indicator');
+        if (loader) {
+            loader.style.opacity = '0';
+            setTimeout(function() { loader.style.display = 'none'; }, 500);
+        }
+    }
 
+    // Hydra Visualizer with WebGL recovery and Canvas fallback
+    var viz = null;
     function HydraVisualizer(canvas) {
         this.canvas = canvas;
         this.hydra = null;
+        this.ctx2d = null;
+        this.useFallback = false;
         this.currentStyle = null;
         this.energy = 0; this.low = 0; this.mid = 0; this.high = 0;
         this.hue = 0;
         this.transitioning = false;
         this.audioLoopId = null;
         this.audioBuffer = new Uint8Array(128);
+        this.isContextLost = false;
         this._init();
         this.renderStyleGrid();
     }
 
     HydraVisualizer.prototype._init = function() {
+        // Check WebGL support
+        if (!window.webglSupport.available) {
+            console.warn('WebGL not available, using Canvas 2D fallback');
+            this.useFallback = true;
+            this._initCanvas2D();
+            return;
+        }
+        
         try {
             this.hydra = new Hydra({
                 canvas: this.canvas,
                 detectAudio: false,
                 enableStreamCapture: false,
-                precision: state.devicePerformance >= 2 ? 'medium' : 'low',
+                precision: window.webglSupport.level >= 2 ? 'medium' : 'low',
                 width: window.innerWidth,
                 height: window.innerHeight
             });
+            
             window.hydra = this.hydra;
             window.s = this.hydra.synth;
             window.a = this.hydra.audio;
+            
+            // WebGL context recovery handlers
+            var self = this;
+            this.canvas.addEventListener('webglcontextlost', function(e) {
+                e.preventDefault();
+                console.log('WebGL context lost');
+                self.isContextLost = true;
+                self.hydra = null;
+                showToast('可视化暂停，点击播放恢复');
+            }, false);
+            
+            this.canvas.addEventListener('webglcontextrestored', function() {
+                console.log('WebGL context restored');
+                self.isContextLost = false;
+                self._init();
+                if (state.playing) self.start();
+            }, false);
+            
         } catch (e) {
             console.error('Hydra init failed:', e);
-            showToast('Hydra初始化失败: ' + e.message);
+            showToast('高级可视化不可用，使用兼容模式');
+            this.useFallback = true;
+            this._initCanvas2D();
         }
+    };
+
+    // Canvas 2D Fallback
+    HydraVisualizer.prototype._initCanvas2D = function() {
+        this.useFallback = true;
+        this.ctx2d = this.canvas.getContext('2d');
+        this.canvas.width = window.innerWidth;
+        this.canvas.height = window.innerHeight;
+        console.log('Canvas 2D fallback initialized');
+    };
+
+    HydraVisualizer.prototype.renderCanvas2D = function() {
+        if (!this.ctx2d || !state.analyser) return;
+        
+        var ctx = this.ctx2d;
+        var width = this.canvas.width;
+        var height = this.canvas.height;
+        var data = this.audioBuffer;
+        
+        state.analyser.getByteFrequencyData(data);
+        
+        // Clear with fade effect
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+        ctx.fillRect(0, 0, width, height);
+        
+        // Draw spectrum bars
+        var barCount = 64;
+        var barWidth = width / barCount;
+        var step = Math.floor(data.length / barCount);
+        
+        for (var i = 0; i < barCount; i++) {
+            var value = data[i * step];
+            var barHeight = (value / 255) * height * 0.8;
+            var hue = (i / barCount) * 360 + this.hue;
+            
+            ctx.fillStyle = 'hsla(' + hue + ', 80%, 60%, 0.8)';
+            ctx.fillRect(i * barWidth, height - barHeight, barWidth - 2, barHeight);
+        }
+        
+        // Draw center energy circle
+        var energy = data.slice(0, 10).reduce(function(a, b) { return a + b; }, 0) / 10;
+        var radius = 50 + (energy / 255) * 100;
+        
+        ctx.beginPath();
+        ctx.arc(width / 2, height / 2, radius, 0, Math.PI * 2);
+        ctx.strokeStyle = 'hsla(' + this.hue + ', 80%, 60%, 0.5)';
+        ctx.lineWidth = 3;
+        ctx.stroke();
+        
+        // Update UI effects
+        this.energy = energy / 255;
+        var scale = 1 + this.energy * 0.35;
+        var themeColor = 'hsl(' + this.hue + ', 80%, 60%)';
+        ui.capsuleCore.style.transform = 'scale(' + scale + ')';
+        ui.ringLogo.style.color = themeColor;
+        ui.ringProgress.style.stroke = themeColor;
+        ui.capsuleCore.style.boxShadow = '0 0 ' + (15 + this.energy * 40) + 'px ' + themeColor + '66';
     };
 
     HydraVisualizer.prototype.resize = function() {
         if (this.hydra) this.hydra.resize(window.innerWidth, window.innerHeight);
+        if (this.ctx2d) {
+            this.canvas.width = window.innerWidth;
+            this.canvas.height = window.innerHeight;
+        }
     };
 
     HydraVisualizer.prototype.start = function() {
+        if (this.useFallback) {
+            this.updateAudioLoop();
+            return;
+        }
         if (!this.hydra || this.hydra.isRunning) return;
         this.hydra.render();
         this.updateAudioLoop();
@@ -568,6 +601,13 @@ stack(
     };
 
     HydraVisualizer.prototype.stop = function() {
+        if (this.useFallback) {
+            if (this.audioLoopId) {
+                cancelAnimationFrame(this.audioLoopId);
+                this.audioLoopId = null;
+            }
+            return;
+        }
         if (!this.hydra || !this.hydra.isRunning) return;
         this.hydra.clear();
         if (this.audioLoopId) {
@@ -580,21 +620,22 @@ stack(
         var self = this;
         if (!state.playing && !state.mic) return;
         this.audioLoopId = requestAnimationFrame(function() { self.updateAudioLoop(); });
-        if (!state.analyser) return;
-
+        
+        if (this.useFallback) {
+            this.renderCanvas2D();
+            this.hue += 0.5;
+            return;
+        }
+        
+        if (!state.analyser || !this.hydra) return;
         state.analyser.getByteFrequencyData(this.audioBuffer);
         this.energy = this.audioBuffer.slice(0, 30).reduce(function(a, b) { return a + b; }, 0) / 30 / 255;
         this.low = this.audioBuffer.slice(0, 10).reduce(function(a, b) { return a + b; }, 0) / 10 / 255;
         this.mid = this.audioBuffer.slice(10, 40).reduce(function(a, b) { return a + b; }, 0) / 30 / 255;
         this.high = this.audioBuffer.slice(40, 128).reduce(function(a, b) { return a + b; }, 0) / 88 / 255;
-
         if (typeof a !== 'undefined') {
-            a.low = this.low;
-            a.mid = this.mid;
-            a.high = this.high;
-            a.energy = this.energy;
+            a.low = this.low; a.mid = this.mid; a.high = this.high; a.energy = this.energy;
         }
-
         var scale = 1 + this.energy * 0.35;
         var themeColor = this.getCurrentThemeColor();
         ui.capsuleCore.style.transform = 'scale(' + scale + ')';
@@ -605,27 +646,29 @@ stack(
     };
 
     HydraVisualizer.prototype.getCurrentThemeColor = function() {
-        if (state.mode === 'aurora' || state.mode === 'aurora2') return 'hsl(' + this.hue + ', 80%, 60%)';
+        if (state.mode === 'aurora') return 'hsl(' + this.hue + ', 80%, 60%)';
         var t = themes.find(function(x) { return x.id === state.mode; });
         return t ? t.color : '#fff';
     };
 
     HydraVisualizer.prototype.applyStyle = function(styleId) {
-        if (this.transitioning) return;
+        if (this.transitioning || this.useFallback) return;
         var self = this;
         var style = visualStyles.find(function(st) { return st.id === styleId; });
         if (!style) return;
-
-        if (style.performanceLevel > state.devicePerformance) {
-            var fallback = visualStyles.find(function(st) { return st.performanceLevel <= state.devicePerformance; }) || visualStyles[0];
+        
+        // Check GPU requirement
+        if (window.webglSupport.level < style.performanceLevel) {
+            var fallback = visualStyles.find(function(st) { 
+                return st.performanceLevel <= window.webglSupport.level; 
+            }) || visualStyles[0];
             showToast('设备性能不足，已切换到 ' + fallback.name);
             return this.applyStyle(fallback.id);
         }
-
+        
         this.transitioning = true;
         this.currentStyle = style;
         state.mode = styleId;
-
         this.canvas.style.opacity = '0';
         setTimeout(function() {
             try {
@@ -635,7 +678,9 @@ stack(
                 }
             } catch (e) {
                 console.error('Style render error:', e);
-                showToast('风格渲染出错: ' + e.message);
+                showToast('风格渲染出错，切换到兼容模式');
+                self.useFallback = true;
+                self._initCanvas2D();
             }
             self.canvas.style.opacity = '1';
             self.transitioning = false;
@@ -646,23 +691,29 @@ stack(
 
     HydraVisualizer.prototype.getSmartStyle = function() {
         var self = this;
+        var maxPerf = this.useFallback ? 1 : window.webglSupport.level;
         var candidates = visualStyles.filter(function(s) {
             var energyMatch = self.energy >= s.energyRange[0] && self.energy <= s.energyRange[1];
-            var perfMatch = s.performanceLevel <= state.devicePerformance;
+            var perfMatch = s.performanceLevel <= maxPerf;
             var notCurrent = s.id !== state.mode;
             return energyMatch && perfMatch && notCurrent;
         });
         if (candidates.length === 0) {
-            return visualStyles.find(function(s) { return s.performanceLevel <= state.devicePerformance && s.id !== state.mode; }) || visualStyles[0];
+            return visualStyles.find(function(s) { 
+                return s.performanceLevel <= maxPerf && s.id !== state.mode; 
+            }) || visualStyles[0];
         }
         return candidates[Math.floor(Math.random() * candidates.length)];
     };
 
     HydraVisualizer.prototype.renderStyleGrid = function() {
+        var maxPerf = window.webglSupport.available ? window.webglSupport.level : 1;
         ui.styleGrid.innerHTML = visualStyles.map(function(s) {
+            var disabled = s.performanceLevel > maxPerf ? 'opacity:0.3;' : '';
             return '<div class="style-card ' + (s.id === state.mode ? 'active' : '') + '" ' +
                 'data-style-id="' + s.id + '" ' +
-                'onclick="viz.applyStyle(\'' + s.id + '\'); toggleDrawer(\'styles-drawer\');">' +
+                'onclick="viz.applyStyle(\'' + s.id + '\'); toggleDrawer(\'styles-drawer\');" ' +
+                'style="' + disabled + '">' +
                 '<div class="style-name">' + s.name + '</div>' +
                 '<div class="style-desc">' + s.description + '</div>' +
                 '<div class="style-category">' + s.category + '</div>' +
@@ -676,24 +727,14 @@ stack(
         });
     };
 
-    // ─── Audio Engine ───
+    // Audio Engine
     var engine = null;
-
     function AudioEngine() {
         viz = new HydraVisualizer(ui.canvas);
         this.viz = viz;
         this._initStrudel();
-        this._detectDevicePerformance();
+        hideLoading();
     }
-
-    AudioEngine.prototype._detectDevicePerformance = function() {
-        var isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-        var lowMemory = navigator.deviceMemory && navigator.deviceMemory < 4;
-        if (isMobile || lowMemory) state.devicePerformance = 1;
-        else if (navigator.deviceMemory && navigator.deviceMemory >= 8) state.devicePerformance = 3;
-        else state.devicePerformance = 2;
-        console.log('设备性能等级: ' + state.devicePerformance);
-    };
 
     AudioEngine.prototype._initStrudel = function() {
         try {
@@ -702,12 +743,9 @@ stack(
                     prebake: function() { return samples('github:tidalcycles/dirt-samples'); }
                 });
                 showToast('Strudel引擎已就绪');
-            } else {
-                console.warn('initStrudel not found');
             }
         } catch (e) {
-            console.error('Strudel初始化失败', e);
-            showToast('Strudel加载失败，部分功能不可用');
+            console.warn('Strudel not loaded');
         }
     };
 
@@ -717,7 +755,6 @@ stack(
             state.analyser = state.ctx.createAnalyser();
             state.analyser.fftSize = 2048;
             state.analyser.smoothingTimeConstant = 0.8;
-            state.analyser.connect(state.ctx.destination);
         }
         if (state.ctx.state === 'suspended') state.ctx.resume();
     };
@@ -728,17 +765,14 @@ stack(
         this.stop(false);
         this.initContext();
         showToast('正在请求音频流...');
-
         var fileName = url.split('/').pop().split('?')[0] || 'Network Stream';
         state.playlist.push({ name: fileName, src: url, isUrl: true });
         state.trackIdx = state.playlist.length - 1;
         this.renderPlaylist();
-
         state.audioEl = new Audio();
         state.audioEl.crossOrigin = 'anonymous';
         state.audioEl.src = url;
         this._setupAudioListeners(state.audioEl, fileName);
-
         state.audioEl.play()
             .then(function() {
                 self.startUI();
@@ -757,7 +791,6 @@ stack(
                 self.renderPlaylist();
                 self.stopUI();
             });
-
         document.getElementById('input-drawer').classList.remove('open');
         document.getElementById('url-input').value = '';
     };
@@ -796,18 +829,15 @@ stack(
         var track = state.playlist[idx];
         this.stop(false);
         this.initContext();
-
         state.audioEl = new Audio(track.src);
         state.audioEl.crossOrigin = 'anonymous';
         state.audioEl.onended = function() { self.playNext(); };
-
         try {
             state.src = state.ctx.createMediaElementSource(state.audioEl);
             state.src.connect(state.analyser);
         } catch (e) {
             console.warn('Viz connect fail');
         }
-
         state.audioEl.play()
             .then(function() {
                 self._bindEvents(state.audioEl);
@@ -929,7 +959,7 @@ stack(
         return m + ':' + (sec < 10 ? '0' : '') + sec;
     };
 
-    // ─── Strudel ───
+    // Strudel
     function runStrudel() {
         engine.stop(false);
         engine.initContext();
@@ -957,8 +987,12 @@ stack(
         }
     }
 
-    // ─── Hydra manual code ───
+    // Hydra manual code
     function runHydra() {
+        if (viz.useFallback) {
+            showToast('当前使用兼容模式，Hydra代码不可用');
+            return;
+        }
         var code = document.getElementById('hydra-code').value;
         try {
             new Function(code)();
@@ -970,31 +1004,35 @@ stack(
     }
 
     function resetHydra() {
+        if (viz.useFallback) {
+            showToast('当前使用兼容模式');
+            return;
+        }
         viz.applyStyle(state.mode);
         showToast('已重置为主题预设');
     }
 
-    // ─── Smart theme ───
+    // Smart theme
     function randomSmartTheme() {
-        if (!state.playing) {
-            var others = visualStyles.filter(function(t) { return t.id !== state.mode && t.performanceLevel <= state.devicePerformance; });
-            var next = others[Math.floor(Math.random() * others.length)];
-            viz.applyStyle(next.id);
+        var next = viz.getSmartStyle();
+        if (viz.useFallback) {
+            showToast('兼容模式: ' + next.name);
+            state.mode = next.id;
         } else {
-            var next = viz.getSmartStyle();
             viz.applyStyle(next.id);
         }
     }
 
-    // ─── Zen mode ───
+    // Zen mode
     function resetZen() {
         clearTimeout(state.zenTimer);
         if (ui.shell.classList.contains('zen')) return;
         if (state.playing) state.zenTimer = setTimeout(enterZenMode, 4000);
     }
+
     function enterZenMode() { ui.shell.classList.add('zen'); }
 
-    // ─── Drawers ───
+    // Drawers
     function toggleDrawer(id) {
         var el = document.getElementById(id);
         var isOpen = el.classList.contains('open');
@@ -1002,8 +1040,26 @@ stack(
         if (!isOpen) el.classList.add('open');
     }
 
-    // ─── Init & Bindings ───
-    engine = new AudioEngine();
+    // Init with DOMContentLoaded to ensure Hydra is loaded
+    document.addEventListener('DOMContentLoaded', function() {
+        // Wait for Hydra library to be available
+        var checkHydra = setInterval(function() {
+            if (typeof Hydra !== 'undefined' || !window.webglSupport.available) {
+                clearInterval(checkHydra);
+                engine = new AudioEngine();
+            }
+        }, 100);
+        
+        // Timeout after 5 seconds
+        setTimeout(function() {
+            clearInterval(checkHydra);
+            if (!engine) {
+                console.log('Hydra timeout, using fallback');
+                window.webglSupport = { available: false, level: 0 };
+                engine = new AudioEngine();
+            }
+        }, 5000);
+    });
 
     // Touch swipe for zen mode
     document.addEventListener('touchstart', function(e) { state.touchStartX = e.touches[0].clientX; });
@@ -1018,7 +1074,6 @@ stack(
     ui.card.addEventListener('click', function(e) { e.stopPropagation(); });
     document.getElementById('capsule').addEventListener('click', function(e) { e.stopPropagation(); });
     document.getElementById('capsule-play').addEventListener('click', function(e) { e.stopPropagation(); engine.togglePlay(); });
-
     window.addEventListener('resize', function() { viz.resize(); });
     ui.playBtns[0].onclick = function(e) { e.stopPropagation(); engine.togglePlay(); };
     ui.mic.onclick = function() { engine.toggleMic(); };
