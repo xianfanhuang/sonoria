@@ -540,45 +540,313 @@ stack(
         var width = this.canvas.width;
         var height = this.canvas.height;
         var data = this.audioBuffer;
+        var style = state.mode || 'aurora';
         
         state.analyser.getByteFrequencyData(data);
         
-        // Clear with fade effect
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
-        ctx.fillRect(0, 0, width, height);
+        // Calculate energy values
+        var lowEnergy = data.slice(0, 10).reduce(function(a, b) { return a + b; }, 0) / 10;
+        var midEnergy = data.slice(10, 40).reduce(function(a, b) { return a + b; }, 0) / 30;
+        var highEnergy = data.slice(40, 64).reduce(function(a, b) { return a + b; }, 0) / 24;
+        var totalEnergy = data.reduce(function(a, b) { return a + b; }, 0) / data.length;
         
-        // Draw spectrum bars
-        var barCount = 64;
-        var barWidth = width / barCount;
-        var step = Math.floor(data.length / barCount);
-        
-        for (var i = 0; i < barCount; i++) {
-            var value = data[i * step];
-            var barHeight = (value / 255) * height * 0.8;
-            var hue = (i / barCount) * 360 + this.hue;
-            
-            ctx.fillStyle = 'hsla(' + hue + ', 80%, 60%, 0.8)';
-            ctx.fillRect(i * barWidth, height - barHeight, barWidth - 2, barHeight);
+        // Style-based rendering
+        switch(style) {
+            case 'cosmic': // 宇宙 - 星空粒子效果
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.15)';
+                ctx.fillRect(0, 0, width, height);
+                this._drawParticles(ctx, width, height, data, lowEnergy, 'cosmic');
+                break;
+                
+            case 'neural': // 神经 - 网络节点效果
+                ctx.fillStyle = 'rgba(0, 0, 10, 0.25)';
+                ctx.fillRect(0, 0, width, height);
+                this._drawNeuralNetwork(ctx, width, height, data, midEnergy);
+                break;
+                
+            case 'liquid': // 液体 - 波纹效果
+                ctx.fillStyle = 'rgba(0, 10, 20, 0.2)';
+                ctx.fillRect(0, 0, width, height);
+                this._drawRipples(ctx, width, height, totalEnergy, 'liquid');
+                break;
+                
+            case 'spectrum': // 频谱 - 经典频谱
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+                ctx.fillRect(0, 0, width, height);
+                this._drawSpectrum(ctx, width, height, data, 128, 'spectrum');
+                break;
+                
+            case 'nebula': // 星云 - 流动云雾
+                ctx.fillStyle = 'rgba(10, 0, 20, 0.15)';
+                ctx.fillRect(0, 0, width, height);
+                this._drawNebula(ctx, width, height, lowEnergy, totalEnergy);
+                break;
+                
+            case 'crystal': // 水晶 - 几何晶体
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+                ctx.fillRect(0, 0, width, height);
+                this._drawCrystal(ctx, width, height, midEnergy, highEnergy);
+                break;
+                
+            case 'matrix': // 矩阵 - 数字雨
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+                ctx.fillRect(0, 0, width, height);
+                this._drawMatrix(ctx, width, height, data, highEnergy);
+                break;
+                
+            case 'pulse': // 脉冲 - 中心扩散
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.25)';
+                ctx.fillRect(0, 0, width, height);
+                this._drawPulse(ctx, width, height, totalEnergy);
+                break;
+                
+            case 'flow': // 流动 - 波浪线
+                ctx.fillStyle = 'rgba(5, 5, 15, 0.2)';
+                ctx.fillRect(0, 0, width, height);
+                this._drawFlow(ctx, width, height, data, lowEnergy);
+                break;
+                
+            case 'aurora':
+            default: // 极光 - 默认频谱条
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+                ctx.fillRect(0, 0, width, height);
+                this._drawAurora(ctx, width, height, data, lowEnergy);
+                break;
         }
         
-        // Draw center energy circle
-        var energy = data.slice(0, 10).reduce(function(a, b) { return a + b; }, 0) / 10;
-        var radius = 50 + (energy / 255) * 100;
-        
-        ctx.beginPath();
-        ctx.arc(width / 2, height / 2, radius, 0, Math.PI * 2);
-        ctx.strokeStyle = 'hsla(' + this.hue + ', 80%, 60%, 0.5)';
-        ctx.lineWidth = 3;
-        ctx.stroke();
-        
         // Update UI effects
-        this.energy = energy / 255;
+        this.energy = totalEnergy / 255;
         var scale = 1 + this.energy * 0.35;
         var themeColor = 'hsl(' + this.hue + ', 80%, 60%)';
         ui.capsuleCore.style.transform = 'scale(' + scale + ')';
         ui.ringLogo.style.color = themeColor;
         ui.ringProgress.style.stroke = themeColor;
         ui.capsuleCore.style.boxShadow = '0 0 ' + (15 + this.energy * 40) + 'px ' + themeColor + '66';
+    };
+    
+    // Canvas 2D Style Renderers
+    HydraVisualizer.prototype._drawAurora = function(ctx, width, height, data, energy) {
+        var barCount = 64;
+        var barWidth = width / barCount;
+        var step = Math.floor(data.length / barCount);
+        
+        for (var i = 0; i < barCount; i++) {
+            var value = data[i * step] || 0;
+            var barHeight = (value / 255) * height * 0.7;
+            var hue = (i / barCount) * 180 + 180 + this.hue; // Blue-green range
+            
+            ctx.fillStyle = 'hsla(' + hue + ', 80%, 60%, 0.8)';
+            ctx.fillRect(i * barWidth, height - barHeight, barWidth - 2, barHeight);
+        }
+        
+        // Center glow
+        var radius = 60 + (energy / 255) * 120;
+        var gradient = ctx.createRadialGradient(width/2, height/2, 0, width/2, height/2, radius);
+        gradient.addColorStop(0, 'hsla(' + (this.hue + 180) + ', 80%, 60%, 0.3)');
+        gradient.addColorStop(1, 'hsla(' + (this.hue + 180) + ', 80%, 60%, 0)');
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, width, height);
+    };
+    
+    HydraVisualizer.prototype._drawParticles = function(ctx, width, height, data, energy, type) {
+        var particleCount = 50;
+        var time = Date.now() / 1000;
+        
+        for (var i = 0; i < particleCount; i++) {
+            var x = (Math.sin(i * 1.5 + time * 0.5) * 0.5 + 0.5) * width;
+            var y = (Math.cos(i * 2.3 + time * 0.3) * 0.5 + 0.5) * height;
+            var size = 2 + (data[i % 64] / 255) * 6;
+            var hue = (i / particleCount) * 60 + 240 + this.hue; // Purple-blue
+            
+            ctx.beginPath();
+            ctx.arc(x, y, size, 0, Math.PI * 2);
+            ctx.fillStyle = 'hsla(' + hue + ', 80%, 70%, ' + (0.3 + (energy/255) * 0.7) + ')';
+            ctx.fill();
+        }
+    };
+    
+    HydraVisualizer.prototype._drawNeuralNetwork = function(ctx, width, height, data, energy) {
+        var nodes = 20;
+        var nodePositions = [];
+        var time = Date.now() / 1000;
+        
+        // Calculate node positions
+        for (var i = 0; i < nodes; i++) {
+            var angle = (i / nodes) * Math.PI * 2 + time * 0.2;
+            var radius = 100 + Math.sin(i * 0.5 + time) * 50;
+            nodePositions.push({
+                x: width/2 + Math.cos(angle) * radius,
+                y: height/2 + Math.sin(angle) * radius
+            });
+        }
+        
+        // Draw connections
+        ctx.strokeStyle = 'hsla(340, 80%, 60%, 0.3)';
+        ctx.lineWidth = 1;
+        for (var i = 0; i < nodes; i++) {
+            for (var j = i + 1; j < nodes; j++) {
+                if (Math.random() > 0.85) {
+                    ctx.beginPath();
+                    ctx.moveTo(nodePositions[i].x, nodePositions[i].y);
+                    ctx.lineTo(nodePositions[j].x, nodePositions[j].y);
+                    ctx.stroke();
+                }
+            }
+        }
+        
+        // Draw nodes
+        for (var i = 0; i < nodes; i++) {
+            var size = 3 + (data[i % 64] / 255) * 5;
+            ctx.beginPath();
+            ctx.arc(nodePositions[i].x, nodePositions[i].y, size, 0, Math.PI * 2);
+            ctx.fillStyle = 'hsla(340, 80%, 60%, 0.9)';
+            ctx.fill();
+        }
+    };
+    
+    HydraVisualizer.prototype._drawRipples = function(ctx, width, height, energy, type) {
+        var ripples = 5;
+        var time = Date.now() / 1000;
+        
+        for (var i = 0; i < ripples; i++) {
+            var radius = ((time * 50 + i * 60) % 300);
+            var alpha = 1 - (radius / 300);
+            var lineWidth = 2 + (energy / 255) * 4;
+            
+            ctx.beginPath();
+            ctx.arc(width/2, height/2, radius, 0, Math.PI * 2);
+            ctx.strokeStyle = 'hsla(200, 80%, 60%, ' + alpha * 0.5 + ')';
+            ctx.lineWidth = lineWidth;
+            ctx.stroke();
+        }
+    };
+    
+    HydraVisualizer.prototype._drawSpectrum = function(ctx, width, height, data, count, type) {
+        var barCount = 32;
+        var barWidth = width / barCount;
+        var step = Math.floor(data.length / barCount);
+        
+        for (var i = 0; i < barCount; i++) {
+            var value = data[i * step] || 0;
+            var barHeight = (value / 255) * height * 0.6;
+            var hue = (i / barCount) * 360 + this.hue;
+            
+            // Draw mirrored bars from center
+            ctx.fillStyle = 'hsla(' + hue + ', 90%, 60%, 0.9)';
+            ctx.fillRect(i * barWidth, height/2 - barHeight/2, barWidth - 2, barHeight);
+        }
+    };
+    
+    HydraVisualizer.prototype._drawNebula = function(ctx, width, height, lowEnergy, totalEnergy) {
+        var time = Date.now() / 2000;
+        var gradient = ctx.createRadialGradient(
+            width/2 + Math.sin(time) * 100, 
+            height/2 + Math.cos(time) * 50, 
+            0,
+            width/2, 
+            height/2, 
+            400
+        );
+        gradient.addColorStop(0, 'hsla(' + (280 + this.hue) + ', 60%, 50%, ' + (lowEnergy/255 * 0.5) + ')');
+        gradient.addColorStop(0.5, 'hsla(' + (300 + this.hue) + ', 50%, 40%, ' + (totalEnergy/255 * 0.3) + ')');
+        gradient.addColorStop(1, 'hsla(320, 40%, 20%, 0)');
+        
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, width, height);
+    };
+    
+    HydraVisualizer.prototype._drawCrystal = function(ctx, width, height, midEnergy, highEnergy) {
+        var time = Date.now() / 1000;
+        var sides = 6;
+        var radius = 80 + (midEnergy / 255) * 60;
+        
+        ctx.save();
+        ctx.translate(width/2, height/2);
+        ctx.rotate(time * 0.3);
+        
+        ctx.beginPath();
+        for (var i = 0; i <= sides; i++) {
+            var angle = (i / sides) * Math.PI * 2;
+            var r = radius + Math.sin(i * 2 + time * 2) * 20;
+            var x = Math.cos(angle) * r;
+            var y = Math.sin(angle) * r;
+            if (i === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+        }
+        ctx.closePath();
+        ctx.strokeStyle = 'hsla(' + (this.hue + 320) + ', 80%, 70%, 0.8)';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        
+        // Inner glow
+        var gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, radius);
+        gradient.addColorStop(0, 'hsla(' + (this.hue + 320) + ', 80%, 60%, ' + (highEnergy/255 * 0.4) + ')');
+        gradient.addColorStop(1, 'hsla(' + (this.hue + 320) + ', 80%, 60%, 0)');
+        ctx.fillStyle = gradient;
+        ctx.fill();
+        
+        ctx.restore();
+    };
+    
+    HydraVisualizer.prototype._drawMatrix = function(ctx, width, height, data, highEnergy) {
+        var cols = 20;
+        var colWidth = width / cols;
+        var time = Date.now() / 100;
+        
+        for (var i = 0; i < cols; i++) {
+            var dataIndex = i % 64;
+            var charHeight = 14;
+            var chars = Math.floor((data[dataIndex] / 255) * 20);
+            var x = i * colWidth + colWidth/2;
+            
+            for (var j = 0; j < chars; j++) {
+                var y = (j * charHeight + time * 50) % height;
+                var alpha = 1 - (j / chars);
+                ctx.fillStyle = 'hsla(120, 100%, 50%, ' + alpha * (highEnergy/255) + ')';
+                ctx.font = '12px monospace';
+                ctx.fillText(String.fromCharCode(0x30A0 + Math.random() * 96), x, y);
+            }
+        }
+    };
+    
+    HydraVisualizer.prototype._drawPulse = function(ctx, width, height, energy) {
+        var pulses = 8;
+        var time = Date.now() / 1000;
+        var eNorm = energy / 255;
+        
+        for (var i = 0; i < pulses; i++) {
+            var radius = 30 + i * 40 + Math.sin(time * 2 + i) * 20;
+            var lineWidth = 3 + eNorm * 5;
+            var alpha = (1 - i/pulses) * (0.3 + eNorm * 0.7);
+            
+            ctx.beginPath();
+            ctx.arc(width/2, height/2, radius, 0, Math.PI * 2);
+            ctx.strokeStyle = 'hsla(' + (this.hue + i * 20) + ', 80%, 60%, ' + alpha + ')';
+            ctx.lineWidth = lineWidth;
+            ctx.stroke();
+        }
+    };
+    
+    HydraVisualizer.prototype._drawFlow = function(ctx, width, height, data, lowEnergy) {
+        var waves = 5;
+        var time = Date.now() / 1000;
+        
+        for (var w = 0; w < waves; w++) {
+            ctx.beginPath();
+            ctx.moveTo(0, height/2);
+            
+            for (var x = 0; x < width; x += 5) {
+                var dataIndex = Math.floor((x / width) * 64) % 64;
+                var amplitude = (data[dataIndex] / 255) * 50 * (w + 1) / waves;
+                var frequency = 0.01 + w * 0.005;
+                var y = height/2 + Math.sin(x * frequency + time + w) * amplitude;
+                ctx.lineTo(x, y);
+            }
+            
+            ctx.strokeStyle = 'hsla(' + (this.hue + w * 30) + ', 70%, 60%, 0.4)';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+        }
     };
 
     HydraVisualizer.prototype.resize = function() {
@@ -652,10 +920,19 @@ stack(
     };
 
     HydraVisualizer.prototype.applyStyle = function(styleId) {
-        if (this.transitioning || this.useFallback) return;
+        if (this.transitioning) return;
         var self = this;
         var style = visualStyles.find(function(st) { return st.id === styleId; });
         if (!style) return;
+        
+        // Canvas 2D fallback mode - just update state and notify
+        if (this.useFallback) {
+            this.currentStyle = style;
+            state.mode = styleId;
+            this.updateStyleGrid();
+            showToast('Canvas模式: ' + style.name);
+            return;
+        }
         
         // Check GPU requirement
         if (window.webglSupport.level < style.performanceLevel) {
