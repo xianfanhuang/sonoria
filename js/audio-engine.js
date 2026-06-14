@@ -32,6 +32,10 @@
                 window.state.analyser = window.state.ctx.createAnalyser();
                 window.state.analyser.fftSize = 2048;
                 window.state.analyser.smoothingTimeConstant = 0.8;
+                // [FIX v6.0.1] 关键修复：analyser 串到 destination
+                // 否则 src -> analyser 后无下游，扬声器无声（仅可视化能看到）
+                // AnalyserNode 是 pass-through，连接后音频照常播放且频谱可读
+                window.state.analyser.connect(window.state.ctx.destination);
             }
             if (window.state.ctx.state === 'suspended') {
                 window.state.ctx.resume().then(resolve).catch(function (e) {
