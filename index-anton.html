@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Anton | 声波雕塑</title>
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#0a0a0a">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>◈</text></svg>">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* ========== Anton Design System ========== */
+        :root {
+            --anton-bg: #0a0a0a;
+            --anton-warm-gray:  #8c8273;
+            --anton-warm-gray-l:#a39886;
+            --anton-terra-cotta: #cc6b4f;
+            --anton-dark-gold:   #b8860b;
+            --anton-dark-gold-l: #d4a574;
+            --anton-cool-blue:   #6b7b8d;
+            --anton-cool-blue-l: #8899aa;
+            --anton-border:      rgba(255, 255, 255, 0.06);
+            --anton-border-hover:rgba(255, 255, 255, 0.14);
+            --anton-glass:       rgba(10, 10, 10, 0.65);
+            --anton-text-main:   rgba(255, 255, 255, 0.92);
+            --anton-text-sub:    rgba(255, 255, 255, 0.45);
+            --anton-text-dim:    rgba(255, 255, 255, 0.25);
+            --ease-elastic:      cubic-bezier(0.34, 1.56, 0.64, 1);
+            --ease-smooth:       cubic-bezier(0.23, 1, 0.32, 1);
+            --safe-top:          env(safe-area-inset-top, 20px);
+            --safe-bottom:       env(safe-area-inset-bottom, 20px);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+        body {
+            background: var(--anton-bg);
+            color: var(--anton-text-main);
+            font-family: 'Inter', sans-serif;
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+            user-select: none;
+            position: fixed;
+        }
+
+        /* ===== 可视化 Canvas ===== */
+        #visualizer {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: 1;
+            display: block;
+        }
+
+        /* ===== 渐晕 ===== */
+        .vignette {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: radial-gradient(circle at center, transparent 30%, rgba(0,0,0,0.5) 100%);
+            z-index: 2;
+            pointer-events: none;
+        }
+
+        /* ===== Ghost Card ===== */
+        .ghost-card {
+            position: fixed;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 10;
+            width: 100%;
+            max-width: 360px;
+            padding: 20px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.6s var(--ease-smooth), transform 0.6s var(--ease-smooth);
+            transform: translate(-50%, -50%) scale(0.96);
+        }
+
+        .ghost-card.visible {
+            opacity: 1;
+            pointer-events: auto;
+            transform: translate(-50%, -50%) scale(1);
+        }
+
+        .ghost-card-inner {
+            background: var(--anton-glass);
+            backdrop-filter: blur(30px) saturate(120%);
+            -webkit-backdrop-filter: blur(30px) saturate(120%);
+            border: 1px solid var(--anton-border);
+            border-radius: 28px;
+            padding: 32px 28px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+        }
+
+        /* ===== 曲目信息 ===== */
+        .track-info {
+            text-align: center;
+            width: 100%;
+        }
+
+        .track-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            line-height: 1.4;
+            color: var(--anton-text-main);
+            letter-spacing: -0.3px;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            margin-bottom: 4px;
+        }
+
+        .track-artist {
+            font-size: 0.8rem;
+            color: var(--anton-text-sub);
+            font-weight: 400;
+            letter-spacing: 0.2px;
+        }
+
+        /* ===== 进度呼吸环 ===== */
+        .progress-ring-container {
+            width: 140px;
+            height: 140px;
+            position: relative;
+            display: grid;
+            place-items: center;
+        }
+
+        .progress-ring-svg {
+            position: absolute;
+            width: 100%; height: 100%;
+            transform: rotate(-90deg);
+            overflow: visible;
+        }
+
+        .progress-ring-bg {
+            fill: none;
+            stroke: var(--anton-border);
+            stroke-width: 2;
+        }
+
+        .progress-ring-fill {
+            fill: none;
+            stroke: var(--anton-warm-gray);
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-dasharray: 377;
+            stroke-dashoffset: 377;
+            transition: stroke-dashoffset 0.1s linear, stroke 0.8s var(--ease-smooth);
+        }
+
+        .progress-ring-center {
+            z-index: 1;
+            display: grid;
+            place-items: center;
+        }
+
+        .play-btn {
+            width: 80px; height: 80px;
+            border-radius: 50%;
+            background: transparent;
+            border: 1px solid var(--anton-border-hover);
+            color: var(--anton-text-main);
+            font-size: 36px;
+            display: grid;
+            place-items: center;
+            cursor: pointer;
+            transition: all 0.4s var(--ease-elastic);
+            backdrop-filter: blur(10px);
+            background: rgba(255,255,255,0.04);
+        }
+
+        .play-btn:active {
+            transform: scale(0.92);
+            background: rgba(255,255,255,0.1);
+        }
+
+        /* ===== 时间显示 ===== */
+        .time-display {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            font-size: 0.7rem;
+            color: var(--anton-text-dim);
+            font-variant-numeric: tabular-nums;
+            letter-spacing: 0.5px;
+            padding: 0 4px;
+            margin-top: -8px;
+        }
+
+        /* ===== 底部胶囊进度指示（Anton 风格：细线边框、克制色彩） ===== */
+        .anton-capsule {
+            position: fixed;
+            bottom: calc(24px + var(--safe-bottom));
+            left: 50%;
+            transform: translateX(-50%) translateY(120px);
+            z-index: 999;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 5px 6px 5px 10px;
+            background: var(--anton-glass);
+            backdrop-filter: blur(30px) saturate(120%);
+            -webkit-backdrop-filter: blur(30px) saturate(120%);
+            border: 1px solid var(--anton-border);
+            border-radius: 100px;
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.7s var(--ease-elastic);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        }
+
+        .anton-capsule.visible {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .capsule-ring-wrap {
+            width: 36px; height: 36px;
+            position: relative;
+            display: grid;
+            place-items: center;
+            border-radius: 50%;
+            flex-shrink: 0;
+            transition: transform 0.05s linear, box-shadow 0.1s linear;
+        }
+
+        .capsule-ring-svg {
+            position: absolute;
+            width: 100%; height: 100%;
+            transform: rotate(-90deg);
+            overflow: visible;
+        }
+
+        .capsule-ring-bg {
+            fill: none;
+            stroke: var(--anton-border);
+            stroke-width: 2;
+        }
+
+        .capsule-ring-fill {
+            fill: none;
+            stroke: var(--anton-warm-gray);
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-dasharray: 88;
+            stroke-dashoffset: 88;
+            transition: stroke-dashoffset 0.1s linear, stroke 0.5s var(--ease-smooth);
+        }
+
+        .capsule-icon {
+            font-size: 16px;
+            z-index: 1;
+            color: var(--anton-warm-gray-l);
+            transition: color 0.5s;
+        }
+
+        .capsule-text {
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: var(--anton-text-main);
+            max-width: 100px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .capsule-btn {
+            width: 36px; height: 36px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.06);
+            border: 1px solid var(--anton-border);
+            color: var(--anton-text-main);
+            display: grid;
+            place-items: center;
+            cursor: pointer;
+            flex-shrink: 0;
+            transition: 0.25s;
+            font-size: 18px;
+        }
+
+        .capsule-btn:active {
+            background: rgba(255,255,255,0.12);
+            transform: scale(0.92);
+        }
+
+        .capsule-btn.small {
+            width: 32px; height: 32px;
+            font-size: 14px;
+        }
+
+        /* ===== Toast 通知 ===== */
+        .toast {
+            position: fixed;
+            top: calc(20px + var(--safe-top));
+            left: 50%;
+            transform: translateX(-50%) translateY(-20px);
+            background: rgba(10, 10, 10, 0.8);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--anton-border);
+            padding: 8px 18px;
+            border-radius: 30px;
+            font-size: 0.78rem;
+            color: var(--anton-text-main);
+            opacity: 0;
+            transition: 0.4s var(--ease-elastic);
+            z-index: 1000;
+            pointer-events: none;
+            white-space: nowrap;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        /* ===== Loading ===== */
+        #loading-indicator {
+            position: fixed;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 9999;
+            text-align: center;
+            transition: opacity 0.5s;
+        }
+
+        .anton-spinner {
+            width: 32px; height: 32px;
+            border: 2px solid rgba(255,255,255,0.05);
+            border-top-color: var(--anton-warm-gray-l);
+            border-radius: 50%;
+            animation: spin 1.2s ease-in-out infinite;
+            margin: 0 auto 12px;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .loading-text {
+            color: var(--anton-text-sub);
+            font-size: 0.8rem;
+            letter-spacing: 1px;
+            font-weight: 300;
+        }
+
+        /* ===== 添加抽屉（文件选择 + URL 输入） ===== */
+        .anton-drawer {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            width: 100%;
+            margin-top: 4px;
+        }
+
+        .anton-drawer.hidden {
+            display: none;
+        }
+
+        .anton-input {
+            width: 100%;
+            background: rgba(255,255,255,0.06);
+            border: 1px solid var(--anton-border);
+            padding: 12px 14px;
+            border-radius: 12px;
+            color: var(--anton-text-main);
+            outline: none;
+            font-size: 0.82rem;
+            transition: 0.3s;
+            font-family: 'Inter', monospace;
+        }
+
+        .anton-input:focus {
+            border-color: var(--anton-warm-gray-l);
+            background: rgba(255,255,255,0.1);
+        }
+
+        .anton-input::placeholder {
+            color: var(--anton-text-dim);
+        }
+
+        .anton-btn-row {
+            display: flex;
+            gap: 8px;
+        }
+
+        .anton-btn {
+            flex: 1;
+            padding: 10px;
+            background: rgba(255,255,255,0.06);
+            border: 1px solid var(--anton-border);
+            border-radius: 10px;
+            color: var(--anton-text-main);
+            font-size: 0.78rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: 0.25s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .anton-btn:active {
+            background: rgba(255,255,255,0.12);
+            transform: scale(0.98);
+        }
+
+        .anton-btn .material-icons-round {
+            font-size: 16px;
+        }
+
+        input[type="file"] { display: none; }
+
+        /* ===== 底部操作按钮（幽灵唤出用） ===== */
+        .ghost-trigger {
+            position: fixed;
+            bottom: calc(80px + var(--safe-bottom));
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 5;
+            width: 48px; height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--anton-text-dim);
+            font-size: 20px;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 1s ease;
+            background: transparent;
+            border: none;
+        }
+
+        .ghost-trigger.visible {
+            opacity: 0.5;
+        }
+
+        .ghost-trigger:active {
+            opacity: 0.8;
+        }
+
+        /* ===== 响应式 ===== */
+        @media (max-width: 400px) {
+            .ghost-card { padding: 12px; }
+            .ghost-card-inner { padding: 24px 20px; }
+            .progress-ring-container { width: 120px; height: 120px; }
+            .play-btn { width: 68px; height: 68px; font-size: 30px; }
+        }
+
+        /* Breathing animation */
+        .ghost-card.breathing .ghost-card-inner {
+            animation: anton-breathe 5s ease-in-out infinite;
+        }
+
+        @keyframes anton-breathe {
+            0%, 100% { box-shadow: 0 20px 60px rgba(0,0,0,0.4); }
+            50% { box-shadow: 0 20px 60px rgba(140,130,115,0.2); }
+        }
+    </style>
+</head>
+<body>
+    <!-- Loading -->
+    <div id="loading-indicator">
+        <div class="anton-spinner"></div>
+        <div class="loading-text">声波雕塑初始化中</div>
+    </div>
+
+    <!-- Visualizer Canvas (Three.js 渲染目标) -->
+    <canvas id="visualizer"></canvas>
+    <div class="vignette"></div>
+
+    <!-- Ghost Trigger (底部微光指示) -->
+    <button class="ghost-trigger" id="ghost-trigger" aria-label="唤出控制">
+        <i class="material-icons-round">keyboard_arrow_up</i>
+    </button>
+
+    <!-- Ghost Card (播放器卡片，默认隐藏) -->
+    <div class="ghost-card" id="ghost-card">
+        <div class="ghost-card-inner">
+            <div class="track-info">
+                <div class="track-title" id="track-title">Anton</div>
+                <div class="track-artist" id="track-artist">触碰唤醒</div>
+            </div>
+
+            <!-- 进度呼吸环 -->
+            <div class="progress-ring-container">
+                <svg class="progress-ring-svg" viewBox="0 0 130 130">
+                    <circle class="progress-ring-bg" cx="65" cy="65" r="60"/>
+                    <circle class="progress-ring-fill" id="progress-ring-fill" cx="65" cy="65" r="60"/>
+                </svg>
+                <div class="progress-ring-center">
+                    <button class="play-btn" id="main-play">
+                        <i class="material-icons-round">play_arrow</i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 时间显示 -->
+            <div class="time-display">
+                <span id="curr-time">0:00</span>
+                <span id="total-time">0:00</span>
+            </div>
+
+            <!-- 添加区（URL/文件） -->
+            <div class="anton-drawer hidden" id="add-drawer">
+                <input type="text" class="anton-input" id="url-input" placeholder="粘贴音频链接，回车加载...">
+                <div class="anton-btn-row">
+                    <button class="anton-btn" onclick="document.getElementById('file-input').click()">
+                        <i class="material-icons-round">folder_open</i> 本地文件
+                    </button>
+                    <button class="anton-btn" id="mic-btn">
+                        <i class="material-icons-round">blur_on</i> 空气共鸣
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Leaflet progress-fill (隐藏，供 audio-engine.js 引用避免空指针) -->
+    <div style="display:none;" id="progress-fill"></div>
+
+    <!-- Bottom Anton Capsule (同时保留 id="capsule" 供 ui-controller.js 引用) -->
+    <div class="anton-capsule" id="capsule">
+        <div class="capsule-ring-wrap" id="capsule-ring-wrap">
+            <svg class="capsule-ring-svg" viewBox="0 0 30 30">
+                <circle class="capsule-ring-bg" cx="15" cy="15" r="14"/>
+                <circle class="capsule-ring-fill" id="capsule-ring-fill" cx="15" cy="15" r="14"/>
+            </svg>
+            <i class="material-icons-round capsule-icon" id="capsule-icon">graphic_eq</i>
+        </div>
+        <div class="capsule-text" id="capsule-text">Anton</div>
+        <button class="capsule-btn" id="capsule-play">
+            <i class="material-icons-round">play_arrow</i>
+        </button>
+        <button class="capsule-btn small" id="capsule-add" onclick="toggleAddDrawer()">
+            <i class="material-icons-round">add</i>
+        </button>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast"><span id="toast-msg">就绪</span></div>
+
+    <!-- 文件输入 -->
+    <input type="file" id="file-input" accept="audio/wav,audio/mp3,audio/m4a,audio/*" multiple>
+
+    <!-- ===== 脚本加载 ===== -->
+
+    <!-- Three.js CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+    <!-- V6 核心模块（排除：visualizer.js / strudel-engine.js / hydra-synth.min.js） -->
+    <script src="js/webgl-detect.js"></script>
+    <script src="js/styles-config.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/state.js"></script>
+    <script src="js/visualizer-engine.js"></script>
+    <script src="visualizer-anton-v1.js"></script>
+    <script src="js/audio-engine.js"></script>
+    <script src="js/ui-controller.js"></script>
+
+    <!-- ===== 自定义 Bootstrap ===== -->
+    <script>
+    (function () {
+        'use strict';
+
+        // --- 1. Stub StrudelEngine (防止 main.js 报错) ---
+        window.StrudelEngine = function () {
+            this.repl = null;
+            this.readyPromise = null;
+        };
+        window.StrudelEngine.prototype.evaluate = function () {
+            return Promise.resolve(false);
+        };
+        window.StrudelEngine.prototype.hush = function () {
+            return false;
+        };
+        window.StrudelEngine.prototype.isReady = function () {
+            return false;
+        };
+
+        // --- 2. 填充 UI refs (与 main.js 类似但仅 Anton 所需) ---
+        function fillUiRefs() {
+            var dummyDiv = document.createElement('div');
+            var dummyStyle = { style: { width: '0%' } };
+            var dummyInnerHtml = { innerHTML: '' };
+
+            window.ui = {
+                shell: dummyDiv, // 虚拟元素，防止 ui-controller 空指针
+                card: document.getElementById('ghost-card'),
+                canvas: document.getElementById('visualizer'),
+                playBtns: [
+                    document.getElementById('main-play'),
+                    document.getElementById('capsule-play')
+                ],
+                title: document.getElementById('track-title'),
+                artist: document.getElementById('track-artist'),
+                cText: document.getElementById('capsule-text'),
+                pFill: document.getElementById('progress-fill') || dummyStyle,
+                cTime: document.getElementById('curr-time'),
+                tTime: document.getElementById('total-time'),
+                mic: document.getElementById('mic-btn'),
+                ringProgress: document.getElementById('progress-ring-fill'),
+                ringLogo: document.getElementById('capsule-icon'),
+                capsuleCore: document.getElementById('capsule-ring-wrap'),
+                capsuleRingFill: document.getElementById('capsule-ring-fill'),
+                plView: dummyInnerHtml, // 虚拟对象，防止 renderPlaylist 空指针
+                styleGrid: null,
+                toast: document.getElementById('toast'),
+                toastMsg: document.getElementById('toast-msg')
+            };
+        }
+
+        // --- 3. Anton 自定义 bootstrap ---
+        function bootstrap() {
+            fillUiRefs();
+
+            // 检查 Three.js 是否已加载
+            if (typeof THREE === 'undefined') {
+                console.error('[Anton] Three.js failed to load');
+                document.querySelector('.loading-text').textContent = '3D 引擎加载失败';
+                return;
+            }
+
+            // 创建 Anton 可视化器（作为 HydraVisualizer 的替代）
+            var viz = new window.AntonVisualizer(window.ui.canvas);
+            window.viz = viz;
+            window.HydraVisualizer = window.AntonVisualizer; // 接口对齐
+
+            // 创建 Stub StrudelEngine
+            var strudelEngine = new window.StrudelEngine();
+
+            // 创建 Audio Engine
+            var engine = new window.AudioEngine(viz, strudelEngine);
+            window.engine = engine;
+
+            // 初始化 UI Controller
+            window.SonoriaUI.init(engine, viz, strudelEngine);
+
+            // 覆盖 zen 相关方法（Anton 版无 zen mode）
+            window.SonoriaUI.enterZenMode = function () {};
+            window.SonoriaUI.resetZen = function () {};
+            window.SonoriaUI.runHydra = function () { window.SonoriaUtils.showToast('Anton 版不可用'); };
+            window.SonoriaUI.stopStrudel = function () {};
+            window.SonoriaUI.runStrudel = function () { window.SonoriaUtils.showToast('Anton 版未集成 Strudel'); };
+            window.SonoriaUI.resetHydra = function () {};
+
+            // 暴露全局函数
+            exposeGlobals();
+
+            // 绑定 Anton 特有交互
+            bindAntonUI(engine);
+
+            // 隐藏 loading
+            window.SonoriaUtils.hideLoading();
+
+            // 应用默认模式
+            viz.applyStyle('normal');
+        }
+
+        function exposeGlobals() {
+            window.toggleDrawer = window.SonoriaUI.toggleDrawer;
+            window.enterZenMode = function () { /* Anton 版无 zen mode */ };
+            window.runHydra = function () { window.SonoriaUtils.showToast('Anton 版不可用'); };
+            window.resetHydra = function () { /* noop */ };
+            window.runStrudel = function () { window.SonoriaUtils.showToast('Anton 版未集成 Strudel'); };
+            window.stopStrudel = function () { /* noop */ };
+            window.randomSmartTheme = function () {
+                var next = viz.getSmartStyle();
+                viz.applyStyle(next.id);
+                window.SonoriaUtils.showToast('模式: ' + next.name);
+            };
+        }
+
+        // --- 4. Anton 特有交互 ---
+        function bindAntonUI(engine) {
+            var ghostCard = document.getElementById('ghost-card');
+            var capsule = document.getElementById('capsule');
+            var trigger = document.getElementById('ghost-trigger');
+            var addDrawer = document.getElementById('add-drawer');
+            var urlInput = document.getElementById('url-input');
+            var fileInput = document.getElementById('file-input');
+            var micBtn = document.getElementById('mic-btn');
+
+            var dismissTimer = null;
+            var isVisible = false;
+
+            // 唤出卡片
+            function showCard() {
+                isVisible = true;
+                ghostCard.classList.add('visible');
+                capsule.classList.add('visible');
+                if (trigger) trigger.classList.remove('visible');
+                clearTimeout(dismissTimer);
+                dismissTimer = setTimeout(hideCard, 5000);
+            }
+
+            function hideCard() {
+                isVisible = false;
+                ghostCard.classList.remove('visible');
+                capsule.classList.remove('visible');
+                if (trigger) trigger.classList.add('visible');
+                addDrawer.classList.add('hidden');
+            }
+
+            function resetDismissTimer() {
+                if (isVisible) {
+                    clearTimeout(dismissTimer);
+                    dismissTimer = setTimeout(hideCard, 5000);
+                }
+            }
+
+            // 全屏 touch/mouse move → 唤出
+            function onInteraction(e) {
+                if (ghostCard.contains(e.target) || capsule.contains(e.target)) {
+                    resetDismissTimer();
+                    return;
+                }
+                if (!isVisible) {
+                    showCard();
+                } else {
+                    resetDismissTimer();
+                }
+            }
+
+            document.addEventListener('touchstart', onInteraction, { passive: true });
+            document.addEventListener('mousemove', onInteraction, { passive: true });
+
+            // 卡片和胶囊内部点击防止自动隐藏
+            ghostCard.addEventListener('click', function (e) {
+                e.stopPropagation();
+                resetDismissTimer();
+            });
+            ghostCard.addEventListener('touchstart', function (e) {
+                e.stopPropagation();
+                resetDismissTimer();
+            }, { passive: true });
+            capsule.addEventListener('click', function (e) {
+                e.stopPropagation();
+                resetDismissTimer();
+            });
+            capsule.addEventListener('touchstart', function (e) {
+                e.stopPropagation();
+                resetDismissTimer();
+            }, { passive: true });
+
+            // 触发按钮显式唤出
+            if (trigger) {
+                trigger.addEventListener('click', function (e) {
+                    e.stopPropagation();
+                    showCard();
+                });
+            }
+
+            // URL 输入
+            urlInput.addEventListener('keypress', function (e) {
+                if (e.key === 'Enter') {
+                    var val = urlInput.value.trim();
+                    if (val) {
+                        engine.playUrl(val);
+                        addDrawer.classList.add('hidden');
+                    }
+                }
+            });
+
+            // 文件选择
+            fileInput.addEventListener('change', function (e) {
+                engine.handleFiles(e.target.files);
+                addDrawer.classList.add('hidden');
+            });
+
+            // 麦克风切换
+            micBtn.addEventListener('click', function () {
+                engine.toggleMic();
+                addDrawer.classList.add('hidden');
+                resetDismissTimer();
+            });
+
+            // 胶囊添加按钮
+            window.toggleAddDrawer = function () {
+                addDrawer.classList.toggle('hidden');
+                resetDismissTimer();
+            };
+
+            // 扩展 startUI/stopUI 增加呼吸动画
+            var origStartUI = engine.startUI.bind(engine);
+            var origStopUI = engine.stopUI.bind(engine);
+
+            engine.startUI = function () {
+                origStartUI();
+                ghostCard.classList.add('breathing');
+            };
+
+            engine.stopUI = function () {
+                origStopUI();
+                ghostCard.classList.remove('breathing');
+            };
+        }
+
+        // DOM Ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', bootstrap);
+        } else {
+            bootstrap();
+        }
+    })();
+    </script>
+</body>
+</html>
