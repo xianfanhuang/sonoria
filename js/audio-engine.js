@@ -8,21 +8,19 @@
  *   - initContext() 返回 Promise，确保 await ctx.resume() 完成后再播放
  *   - Strudel 协调通过依赖注入的 strudelEngine（避免全局 hush 缺失）
  *   - 播放/暂停/切换都先 await resume，防止 autoplay 策略阻断
+ *   - v6.0.2: 移除默认 analyser→destination 连接，解决麦克风窜音
  */
 (function () {
     'use strict';
-
     function AudioEngine(viz, strudelEngine) {
         this.viz = viz;
         this.strudel = strudelEngine;
         this._init();
     }
-
     AudioEngine.prototype._init = function () {
         // AudioContext 懒创建：首次交互时建立
         window.SonoriaUtils.hideLoading();
     };
-
     // 统一异步 AudioContext 初始化（之前 initContext / initContextAsync 重复定义）
     AudioEngine.prototype.initContext = function () {
         var self = this;
@@ -32,10 +30,9 @@
                 window.state.analyser = window.state.ctx.createAnalyser();
                 window.state.analyser.fftSize = 2048;
                 window.state.analyser.smoothingTimeConstant = 0.8;
-                // [FIX v6.0.1] 关键修复：analyser 串到 destination
-                // 否则 src -> analyser 后无下游，扬声器无声（仅可视化能看到）
-                // AnalyserNode 是 pass-through，连接后音频照常播放且频谱可读
-                window.state.analyser.connect(window.state.ctx.destination);
+                // v6.0.2: 移除默认连接，避免麦克风直通扬声器
+                // 音乐播放时手动连接 destination（见 playTrack/_doPlayUrl）
+                // Air Resonance 只连 analyser，无声音输出（正确行为）
             }
             if (window.state.ctx.state === 'suspended') {
                 window.state.ctx.resume().then(resolve).catch(function (e) {
@@ -47,18 +44,15 @@
             }
         });
     };
-
     AudioEngine.prototype.playUrl = function (url) {
         if (!url) return;
         var self = this;
         this.stop(false);
         window.SonoriaUtils.showToast('正在请求音频流...');
-
         this.initContext().then(function () {
             self._doPlayUrl(url);
         });
     };
-
     AudioEngine.prototype._doPlayUrl = function (url) {
         var self = this;
         var fileName = url.split('/').pop().split('?')[0] || 'Network Stream';
@@ -77,6 +71,8 @@
                         window.state.audioEl
                     );
                     window.state.src.connect(window.state.analyser);
+                    // v6.0.2: 音乐播放时连接 destination（麦克风不连，避免窜音）
+                    window.state.src.connect(window.state.ctx.destination);
                 } catch (e) {
                     console.warn('CORS limitation', e);
                     window.SonoriaUtils.showToast('受源站限制，仅播放音频');
@@ -94,7 +90,6 @@
         var urlInput = document.getElementById('url-input');
         if (urlInput) urlInput.value = '';
     };
-
     AudioEngine.prototype._setupAudioListeners = function (el, title) {
         var self = this;
         el.onended = function () { self.playNext(); };
@@ -105,7 +100,6 @@
             self.stopUI();
         };
     };
-
     AudioEngine.prototype.handleFiles = function (files) {
         var self = this;
         var newTracks = Array.from(files).map(function (f) {
@@ -127,14 +121,12 @@
             window.SonoriaUI && window.SonoriaUI.toggleDrawer('input-drawer');
         }
     };
-
     AudioEngine.prototype.playTrack = function (idx) {
         if (idx < 0 || idx >= window.state.playlist.length) return;
         var self = this;
         window.state.trackIdx = idx;
         var track = window.state.playlist[idx];
         this.stop(false);
-
         this.initContext().then(function () {
             window.state.audioEl = new Audio(track.src);
             window.state.audioEl.crossOrigin = 'anonymous';
@@ -144,6 +136,8 @@
                     window.state.audioEl
                 );
                 window.state.src.connect(window.state.analyser);
+                // v6.0.2: 音乐播放时连接 destination（麦克风不连，避免窜音）
+                window.state.src.connect(window.state.ctx.destination);
             } catch (e) {
                 console.warn('Viz connect fail');
             }
@@ -163,19 +157,16 @@
                 });
         });
     };
-
     AudioEngine.prototype.playNext = function () {
         if (window.state.strudelPlaying || window.state.playlist.length === 0) return;
         this.playTrack((window.state.trackIdx + 1) % window.state.playlist.length);
     };
-
     AudioEngine.prototype.playPrev = function () {
         if (window.state.strudelPlaying || window.state.playlist.length === 0) return;
         this.playTrack(
             (window.state.trackIdx - 1 + window.state.playlist.length) % window.state.playlist.length
         );
     };
-
     AudioEngine.prototype.toggleMic = function () {
         var self = this;
         if (window.state.mic) { this.stop(); return; }
@@ -185,6 +176,7 @@
                 .then(function (stream) {
                     window.state.micStream = stream;
                     window.state.src = window.state.ctx.createMediaStreamSource(stream);
+                    // v6.0.2: Air Resonance 只连 analyser（无 destination），避免窜音
                     window.state.src.connect(window.state.analyser);
                     window.state.mic = true;
                     self.updateMeta('Air Resonance', 'Listening...');
@@ -196,7 +188,6 @@
                 });
         });
     };
-
     AudioEngine.prototype.togglePlay = function () {
         var self = this;
         this.initContext().then(function () {
@@ -227,7 +218,6 @@
             }
         });
     };
-
     AudioEngine.prototype.stop = function (clear) {
         if (clear === undefined) clear = true;
         if (window.state.strudelPlaying) {
@@ -255,7 +245,6 @@
         }
         if (clear) { this.stopUI(); this.viz.stop(); }
     };
-
     AudioEngine.prototype._bindEvents = function (el) {
         var self = this;
         el.ontimeupdate = function () {
@@ -269,7 +258,6 @@
             window.ui.tTime.innerText = window.SonoriaUtils.fmt(el.duration);
         };
     };
-
     AudioEngine.prototype.renderPlaylist = function () {
         if (window.state.playlist.length === 0) {
             window.ui.plView.innerHTML =
@@ -288,13 +276,11 @@
                 '</div>';
         }).join('');
     };
-
     AudioEngine.prototype.updateMeta = function (t, a) {
         window.ui.title.innerText = t;
         window.ui.cText.innerText = t;
         window.ui.artist.innerText = a;
     };
-
     AudioEngine.prototype.startUI = function () {
         window.state.playing = true;
         window.ui.playBtns.forEach(function (b) {
@@ -304,10 +290,9 @@
         this.viz.start();
         window.SonoriaUI && window.SonoriaUI.resetZen();
     };
-
     AudioEngine.prototype.stopUI = function () {
         window.state.playing = false;
-        window.ui.playBtns.forEach(function (b) {
+        window.ui.playBtn.forEach(function (b) {
             b.innerHTML = '<i class="material-icons-round">play_arrow</i>';
         });
         window.ui.card.classList.remove('breathing');
@@ -317,6 +302,5 @@
         window.ui.tTime.innerText = '0:00';
         window.ui.ringProgress.style.strokeDashoffset = 100;
     };
-
     window.AudioEngine = AudioEngine;
 })();
