@@ -4,55 +4,87 @@
  *
  * 暴露：window.StrudelEngine
  *
- * 关键设计（修复根因）：
- *   - initStrudel(opts) 返回 Promise<Repl>，必须 await
- *   - Repl 实例提供 evaluate(code) / hush() / start() / stop() 等方法
- *   - 错误地调用全局 evaluate/hush 会失败（"Can't find variable: evaluate"）
- *   - 任何代码运行前必须先 await init 完成
+ * 关键设计（v6.0.2 修复）：
+ *   - initStrudel(opts) 接收 audioContext 参数，与 Sonoria 共享同一 ctx
+ *   - 延迟初始化：第一次 evaluate 时才 init，确保 window.state.ctx 已就绪
+ *   - 所有音频统一走 window.state.ctx → analyser → destination
+ *   - 修复 strudel 独立 ctx 导致的"有 viz 无声音"问题
  */
 (function () {
     'use strict';
-
     function StrudelEngine() {
         this.repl = null;
         this.readyPromise = null;
-        this._init();
+        this._initialized = false;
+        // v6.0.2: 延迟初始化，等待第一次 evaluate
     }
 
-    // 初始化：fire-and-forget，但保存 Promise 以便后续 await
+    // v6.0.2: 延迟初始化，确保 Sonoria AudioContext 已创建后再 init Strudel
     StrudelEngine.prototype._init = function () {
         if (typeof window.initStrudel !== 'function') {
-            console.warn('Strudel library not loaded');
+            console.warn('[Strudel] Library not loaded');
             return;
         }
-        try {
-            this.readyPromise = window.initStrudel({
+        if (this._initialized) return;
+        this._initialized = true;
+
+        var self = this;
+
+        // 确保 Sonoria AudioContext 已创建（返回 Promise）
+        var ensureSonoriaCtx = function () {
+            return new Promise(function (resolve) {
+                if (window.engine && typeof window.engine.initContext === 'function') {
+                    window.engine.initContext().then(function () {
+                        resolve(window.state && window.state.ctx);
+                    }).catch(function (err) {
+                        console.warn('[Strudel] initContext failed:', err);
+                        resolve(null);
+                    });
+                } else {
+                    console.warn('[Strudel] engine.initContext not available');
+                    resolve(null);
+                }
+            });
+        };
+
+        this.readyPromise = ensureSonoriaCtx().then(function (sonoriaCtx) {
+            var opts = {
                 prebake: function () {
-                    // samples 是 Strudel 提供的全局（如果库支持预烘焙）
                     if (typeof window.samples === 'function') {
                         return window.samples('github:tidalcycles/dirt-samples');
                     }
                 }
-            }).then(function (repl) {
-                // repl 是 Repl 实例（含 evaluate/hush/start/stop）
-                this.repl = repl;
-                window.SonoriaUtils.showToast('Strudel引擎已就绪');
-                return repl;
-            }.bind(this)).catch(function (e) {
-                console.error('Strudel init failed:', e);
-                window.SonoriaUtils.showToast('Strudel初始化失败');
-                this.repl = null;
-                this.readyPromise = null;
-                return null;
-            }.bind(this));
-        } catch (e) {
-            console.error('Strudel sync init error:', e);
-        }
+            };
+
+            // v6.0.2 核心修复：传 Sonoria 的 ctx，让 Strudel 音频统一走 analyser
+            if (sonoriaCtx) {
+                opts.audioContext = sonoriaCtx;
+                console.log('[Strudel v6.0.2] Using shared AudioContext');
+            } else {
+                console.warn('[Strudel v6.0.2] Sonoria ctx not ready, falling back to isolated ctx');
+            }
+
+            return window.initStrudel(opts);
+        }).then(function (repl) {
+            self.repl = repl;
+            window.SonoriaUtils.showToast('Strudel引擎已就绪');
+            return repl;
+        }).catch(function (e) {
+            console.error('[Strudel] Init failed:', e);
+            window.SonoriaUtils.showToast('Strudel初始化失败');
+            self.repl = null;
+            self.readyPromise = null;
+            self._initialized = false;
+            return null;
+        });
     };
 
-    // 等待初始化完成（其他方法内部调用）
     StrudelEngine.prototype._ensureReady = function () {
         var self = this;
+        // v6.0.2: 延迟初始化触发点 - 第一次调用时才开始 init
+        if (!self._initialized) {
+            self._init();
+        }
         return new Promise(function (resolve) {
             if (self.repl) return resolve(self.repl);
             if (!self.readyPromise) {
@@ -63,7 +95,6 @@
         });
     };
 
-    // 运行 Strudel 代码
     StrudelEngine.prototype.evaluate = function (code) {
         var self = this;
         return this._ensureReady().then(function (repl) {
@@ -78,7 +109,6 @@
         });
     };
 
-    // 停止所有正在播放的 pattern
     StrudelEngine.prototype.hush = function () {
         if (this.repl && typeof this.repl.hush === 'function') {
             this.repl.hush();
