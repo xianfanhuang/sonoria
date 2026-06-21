@@ -8,6 +8,7 @@
  *   - initStrudel(opts) 接收 audioContext 参数，与 Sonoria 共享同一 ctx
  *   - 延迟初始化：第一次 evaluate 时才 init，确保 window.state.ctx 已就绪
  *   - 所有音频统一走 window.state.ctx → analyser → destination
+ *   - v6.0.3: 在 initStrudel 的 onReady 回调中显式连接 Strudel 输出到 destination
  *   - 修复 strudel 独立 ctx 导致的"有 viz 无声音"问题
  */
 (function () {
@@ -60,6 +61,28 @@
             if (sonoriaCtx) {
                 opts.audioContext = sonoriaCtx;
                 console.log('[Strudel v6.0.2] Using shared AudioContext');
+                
+                // v6.0.3: 在初始化完成后，手动确保连接到 destination
+                // Strudel 的 repl.synth 是主合成器，需要连接到 analyser 和 destination
+                opts.onReady = function (repl) {
+                    if (repl && repl.synth) {
+                        try {
+                            // Strudel synth 输出需要连接到 analyser (用于可视化)
+                            if (!repl.synth.destination || repl.synth.destination !== window.state.analyser) {
+                                repl.synth.connect(window.state.analyser);
+                                console.log('[Strudel v6.0.3] Connected synth to analyser');
+                            }
+                            // v6.0.3 关键修复：连接到 destination（正确的声音输出路径）
+                            if (!window.state.strudelConnected) {
+                                repl.synth.connect(window.state.ctx.destination);
+                                window.state.strudelConnected = true;
+                                console.log('[Strudel v6.0.3] Connected synth to destination ✓ Sound enabled');
+                            }
+                        } catch (e) {
+                            console.warn('[Strudel v6.0.3] Connection setup warning:', e);
+                        }
+                    }
+                };
             } else {
                 console.warn('[Strudel v6.0.2] Sonoria ctx not ready, falling back to isolated ctx');
             }
@@ -67,6 +90,21 @@
             return window.initStrudel(opts);
         }).then(function (repl) {
             self.repl = repl;
+            
+            // v6.0.3: 确保 onReady 执行后再显示就绪提示
+            if (repl && repl.synth) {
+                try {
+                    if (!repl.synth.connected) {
+                        repl.synth.connect(window.state.analyser);
+                        repl.synth.connect(window.state.ctx.destination);
+                        window.state.strudelConnected = true;
+                        console.log('[Strudel v6.0.3] Secondary connection pass - Sound enabled ✓');
+                    }
+                } catch (e) {
+                    console.warn('[Strudel v6.0.3] Secondary connection failed:', e);
+                }
+            }
+            
             window.SonoriaUtils.showToast('Strudel引擎已就绪');
             return repl;
         }).catch(function (e) {
@@ -103,6 +141,17 @@
                 throw new Error('Repl.evaluate not available');
             }
             return repl.evaluate(code).then(function () {
+                // v6.0.3: evaluate 后再确认一次连接状态
+                if (repl.synth && !window.state.strudelConnected) {
+                    try {
+                        repl.synth.connect(window.state.analyser);
+                        repl.synth.connect(window.state.ctx.destination);
+                        window.state.strudelConnected = true;
+                        console.log('[Strudel v6.0.3] Audio routed to destination on evaluate');
+                    } catch (e) {
+                        console.warn('[Strudel v6.0.3] Post-evaluate connection:', e);
+                    }
+                }
                 window.SonoriaUtils.showToast('音乐生成中');
                 return true;
             });
