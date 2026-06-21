@@ -1,252 +1,1184 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Sonoria | 听见灵魂</title>
+    <title>Sonoria — Feel the Frequency</title>
+    <meta name="description" content="Sonoria: An intelligent music visualization & emotional companion. See your music come alive.">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="theme-color" content="#000000">
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎐</text></svg>">
+    <meta name="theme-color" content="#050508">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx='50' cy='50' r='45' fill='%23050508' stroke='%2300e5cc' stroke-width='4'/><text y='.9em' x='.1em' font-size='70'>◎</text></svg>">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <!-- Hydra 可视化引擎 -->
+    <!-- Hydra -->
     <script src="hydra-synth.min.js"></script>
-    <!-- Strudel 实时音乐引擎 -->
+    <!-- Strudel -->
     <script src="strudel.js"></script>
+
     <style>
+        /* =========================================
+           SONORIA v7.0 — DESIGN SYSTEM
+           世界级沉浸式音乐可视化情感陪伴应用
+        ========================================= */
+
         :root {
-            --primary: #8E2DE2;
-            --accent: #00d2ff;
-            --bg-deep: #000000;
-            --glass: rgba(255, 255, 255, 0.02);
-            --border: rgba(255, 255, 255, 0.06);
-            --highlight: rgba(255, 255, 255, 0.12);
-            --text-main: rgba(255, 255, 255, 0.95);
-            --text-sub: rgba(255, 255, 255, 0.55);
-            --ease-elastic: cubic-bezier(0.34, 1.56, 0.64, 1);
-            --ease-smooth: cubic-bezier(0.23, 1, 0.32, 1);
-            --safe-top: env(safe-area-inset-top, 20px);
-            --safe-bottom: env(safe-area-inset-bottom, 20px);
+            /* Core Palette */
+            --ink-0: #050508;
+            --ink-1: #0a0a10;
+            --ink-2: #111118;
+            --ink-3: #1a1a24;
+            --ink-4: #252530;
+
+            /* Accents */
+            --cyan: #00e5cc;
+            --cyan-dim: rgba(0, 229, 204, 0.15);
+            --cyan-glow: rgba(0, 229, 204, 0.4);
+            --gold: #f0b429;
+            --gold-dim: rgba(240, 180, 41, 0.12);
+            --rose: #ff6b9d;
+            --rose-dim: rgba(255, 107, 157, 0.12);
+
+            /* Text */
+            --txt-100: rgba(255, 255, 255, 0.96);
+            --txt-60: rgba(255, 255, 255, 0.60);
+            --txt-35: rgba(255, 255, 255, 0.35);
+
+            /* Glass */
+            --glass-1: rgba(255, 255, 255, 0.03);
+            --glass-2: rgba(255, 255, 255, 0.055);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --glass-border-hi: rgba(255, 255, 255, 0.14);
+
+            /* Motion */
+            --spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+            --smooth: cubic-bezier(0.23, 1, 0.32, 1);
+            --out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+
+            /* Safe Areas */
+            --sat: env(safe-area-inset-top, 20px);
+            --sab: env(safe-area-inset-bottom, 20px);
+            --sal: env(safe-area-inset-left, 0px);
+            --sar: env(safe-area-inset-right, 0px);
+
+            /* Emotion States */
+            --emotion-color: var(--cyan);
+            --emotion-glow: var(--cyan-glow);
+            --emotion-dim: var(--cyan-dim);
         }
-        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        body { background: var(--bg-deep); color: var(--text-main); font-family: 'Inter', sans-serif; overflow: hidden; height: 100vh; width: 100vw; user-select: none; position: fixed; }
-        #visualizer { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; filter: contrast(1.2) brightness(1.1); transition: opacity 1s ease; }
-        .vignette { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: radial-gradient(circle at center, transparent 30%, rgba(0,0,0,0.6) 100%); z-index: 2; pointer-events: none; }
-        .app-shell { position: relative; z-index: 10; height: 100vh; width: 100vw; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: var(--safe-top) 20px var(--safe-bottom); transition: all 0.8s var(--ease-smooth); perspective: 1000px; }
-        .lens-card { width: 100%; max-width: 380px; background: var(--glass); backdrop-filter: blur(40px) saturate(180%); -webkit-backdrop-filter: blur(40px) saturate(180%); border: 1px solid var(--border); border-top: 1px solid var(--highlight); border-radius: 40px; padding: 32px 28px; display: flex; flex-direction: column; gap: 24px; box-shadow: 0 30px 80px -20px rgba(0,0,0,0.5); transform-style: preserve-3d; transition: all 0.8s var(--ease-smooth); will-change: transform, opacity; }
-        .header { display: flex; justify-content: space-between; align-items: center; opacity: 0.9; }
-        .brand { font-size: 0.75rem; letter-spacing: 3px; font-weight: 700; color: var(--text-sub); display: flex; align-items: center; gap: 8px; text-transform: uppercase; }
-        .icon-btn { background: transparent; border: none; color: var(--text-main); width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; transition: 0.3s; cursor: pointer; }
-        .icon-btn:active { background: rgba(255,255,255,0.1); transform: scale(0.95); }
-        .hero-text { text-align: center; margin-top: 10px; }
-        .title { font-family: 'Inter', sans-serif; font-size: 1.5rem; font-weight: 700; line-height: 1.3; color: var(--text-main); margin-bottom: 6px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; letter-spacing: -0.5px; }
-        .artist { font-size: 0.9rem; color: var(--text-sub); display: flex; align-items: center; justify-content: center; gap: 8px; }
-        .artist::before { content: ''; width: 4px; height: 4px; background: var(--text-sub); border-radius: 50%; opacity: 0.5; }
-        .progress-container { padding: 16px 0; cursor: pointer; }
-        .progress-rail { height: 3px; background: rgba(255,255,255,0.1); width: 100%; border-radius: 2px; overflow: hidden; }
-        .progress-fill { height: 100%; background: var(--text-main); width: 0%; border-radius: 2px; transition: width 0.1s linear; }
-        .time-meta { display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-sub); margin-top: 8px; font-variant-numeric: tabular-nums; }
-        .controls { display: flex; justify-content: center; align-items: center; gap: 36px; padding: 10px 0; }
-        .play-btn { width: 72px; height: 72px; border-radius: 50%; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.15); color: #fff; font-size: 32px; display: grid; place-items: center; box-shadow: 0 10px 30px rgba(0,0,0,0.2); cursor: pointer; transition: 0.3s var(--ease-elastic); backdrop-filter: blur(10px); }
-        .play-btn:active { transform: scale(0.92); background: rgba(255,255,255,0.2); }
-        .sub-btn { font-size: 30px; color: var(--text-sub); background: none; border: none; cursor: pointer; transition: 0.3s; }
-        .sub-btn:active { color: #fff; transform: scale(0.9); }
-        .toolbar { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border); padding-top: 24px; margin-top: 8px; }
-        .pill { height: 40px; padding: 0 18px; border-radius: 100px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.05); color: #fff; font-size: 0.85rem; display: flex; align-items: center; gap: 8px; cursor: pointer; transition: 0.3s; }
-        .pill:active { background: rgba(255,255,255,0.15); transform: scale(0.98); }
-        #mic-btn.active { color: #00d2ff; text-shadow: 0 0 15px rgba(0, 210, 255, 0.6); }
-        .drawer { height: 0; overflow: hidden; transition: 0.5s var(--ease-smooth); opacity: 0; background: rgba(0,0,0,0.2); border-radius: 20px; }
-        .drawer.open { height: auto; opacity: 1; margin-top: 16px; padding: 16px; border: 1px solid var(--border); }
+
+        /* --- RESET & BASE --- */
+        *, *::before, *::after {
+            margin: 0; padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        html {
+            background: var(--ink-0);
+            height: 100%;
+        }
+
+        body {
+            background: var(--ink-0);
+            color: var(--txt-100);
+            font-family: 'Inter', sans-serif;
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+            user-select: none;
+            position: fixed;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* --- VISUALIZER LAYER --- */
+        #visualizer {
+            position: fixed;
+            inset: 0;
+            z-index: 1;
+            filter: contrast(1.15) brightness(1.05) saturate(1.2);
+            transition: opacity 1.5s ease;
+        }
+
+        /* Layered vignette */
+        .vignette {
+            position: fixed;
+            inset: 0;
+            z-index: 2;
+            pointer-events: none;
+            background:
+                radial-gradient(ellipse 70% 50% at 50% 50%, transparent 0%, rgba(5,5,8,0.55) 100%),
+                linear-gradient(to bottom, rgba(5,5,8,0.4) 0%, transparent 30%, transparent 70%, rgba(5,5,8,0.8) 100%);
+        }
+
+        /* --- LOADING --- */
+        #loader {
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            background: var(--ink-0);
+            transition: opacity 0.8s var(--smooth);
+        }
+
+        #loader.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .loader-logo {
+            font-family: 'Space Grotesk', sans-serif;
+            font-weight: 700;
+            font-size: 1.5rem;
+            letter-spacing: 6px;
+            text-transform: uppercase;
+            color: var(--txt-35);
+        }
+
+        .loader-ring {
+            width: 44px;
+            height: 44px;
+            border: 2px solid rgba(255,255,255,0.08);
+            border-top-color: var(--cyan);
+            border-radius: 50%;
+            animation: spin 0.9s linear infinite;
+        }
+
+        .loader-text {
+            font-size: 0.75rem;
+            letter-spacing: 2px;
+            color: var(--txt-35);
+            text-transform: uppercase;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* --- APP SHELL --- */
+        .app {
+            position: relative;
+            z-index: 10;
+            height: 100vh;
+            width: 100vw;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: calc(var(--sat) + 12px) 16px calc(var(--sab) + 12px);
+            perspective: 1200px;
+        }
+
+        /* --- MAIN CARD --- */
+        .card {
+            width: 100%;
+            max-width: 390px;
+            background: var(--glass-1);
+            backdrop-filter: blur(48px) saturate(200%);
+            -webkit-backdrop-filter: blur(48px) saturate(200%);
+            border: 1px solid var(--glass-border);
+            border-top-color: var(--glass-border-hi);
+            border-radius: 36px;
+            padding: 24px 24px 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+            box-shadow:
+                0 40px 80px -20px rgba(0,0,0,0.65),
+                0 0 0 1px rgba(255,255,255,0.02) inset,
+                0 1px 0 rgba(255,255,255,0.06) inset;
+            transform-style: preserve-3d;
+            transition: all 0.7s var(--smooth);
+            will-change: transform, opacity;
+        }
+
+        .card.breathing {
+            animation: breathe 5s ease-in-out infinite;
+        }
+
+        @keyframes breathe {
+            0%, 100% { box-shadow: 0 40px 80px -20px rgba(0,0,0,0.65), 0 0 0 1px rgba(255,255,255,0.02) inset, 0 1px 0 rgba(255,255,255,0.06) inset; }
+            50% { box-shadow: 0 40px 80px -20px rgba(0,0,0,0.65), 0 0 0 1px rgba(255,255,255,0.02) inset, 0 1px 0 rgba(255,255,255,0.06) inset, 0 0 60px -10px var(--emotion-glow); }
+        }
+
+        /* --- HEADER --- */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 22px;
+        }
+
+        .brand {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 0.7rem;
+            font-weight: 700;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            color: var(--txt-35);
+        }
+
+        /* --- EMOTION BADGE --- */
+        .emotion-badge {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px 4px 6px;
+            border-radius: 100px;
+            background: var(--emotion-dim);
+            border: 1px solid rgba(255,255,255,0.06);
+            transition: all 0.5s var(--smooth);
+            cursor: default;
+        }
+
+        .emotion-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--emotion-color);
+            box-shadow: 0 0 8px var(--emotion-color);
+            animation: pulse-dot 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.6; transform: scale(0.8); }
+        }
+
+        .emotion-label {
+            font-size: 0.65rem;
+            font-weight: 600;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            color: var(--emotion-color);
+        }
+
+        .icon-btn {
+            background: transparent;
+            border: none;
+            color: var(--txt-60);
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: grid;
+            place-items: center;
+            transition: all 0.2s;
+            cursor: pointer;
+            font-size: 20px;
+        }
+
+        .icon-btn:hover { color: var(--txt-100); background: var(--glass-2); }
+        .icon-btn:active { transform: scale(0.9); background: var(--glass-border); }
+
+        /* --- ALBUM ART --- */
+        .album-art-wrap {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 1;
+            margin-bottom: 20px;
+            border-radius: 24px;
+            overflow: hidden;
+        }
+
+        .album-art {
+            width: 100%;
+            height: 100%;
+            background: var(--ink-3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 24px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .album-art-canvas {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            border-radius: 24px;
+        }
+
+        /* Waveform mini-viz in album art */
+        .album-waveform {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 3px;
+            z-index: 2;
+            position: relative;
+        }
+
+        .waveform-bar {
+            width: 3px;
+            border-radius: 10px;
+            background: var(--emotion-color);
+            opacity: 0.8;
+            transition: height 0.12s ease;
+        }
+
+        /* Playing indicator overlay */
+        .album-playing-ring {
+            position: absolute;
+            inset: 0;
+            border-radius: 24px;
+            background: linear-gradient(
+                135deg,
+                rgba(0,229,204,0.06) 0%,
+                transparent 50%,
+                rgba(240,180,41,0.06) 100%
+            );
+            pointer-events: none;
+            z-index: 3;
+        }
+
+        /* --- TRACK META --- */
+        .track-meta {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            margin-bottom: 18px;
+        }
+
+        .track-title {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.35rem;
+            font-weight: 700;
+            line-height: 1.2;
+            color: var(--txt-100);
+            letter-spacing: -0.3px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .track-artist {
+            font-size: 0.85rem;
+            color: var(--txt-60);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .track-artist::before {
+            content: '';
+            width: 3px;
+            height: 3px;
+            background: var(--emotion-color);
+            border-radius: 50%;
+            flex-shrink: 0;
+            box-shadow: 0 0 6px var(--emotion-color);
+        }
+
+        /* --- PROGRESS --- */
+        .progress-wrap {
+            margin-bottom: 16px;
+            cursor: pointer;
+            -webkit-user-select: none;
+            user-select: none;
+            padding: 8px 0;
+        }
+
+        .progress-track {
+            position: relative;
+            height: 3px;
+            background: rgba(255,255,255,0.08);
+            border-radius: 100px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            width: 0%;
+            border-radius: 100px;
+            background: var(--emotion-color);
+            box-shadow: 0 0 8px var(--emotion-color);
+            transition: width 0.1s linear;
+            position: relative;
+        }
+
+        .progress-fill::after {
+            content: '';
+            position: absolute;
+            right: 0;
+            top: 50%;
+            transform: translate(50%, -50%);
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #fff;
+            box-shadow: 0 0 0 2px var(--emotion-color);
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .progress-wrap:hover .progress-fill::after { opacity: 1; }
+
+        .time-row {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 8px;
+            font-size: 0.7rem;
+            font-variant-numeric: tabular-nums;
+            color: var(--txt-35);
+            letter-spacing: 0.3px;
+        }
+
+        /* --- CONTROLS --- */
+        .controls {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+
+        .ctrl-btn {
+            background: none;
+            border: none;
+            color: var(--txt-60);
+            width: 44px;
+            height: 44px;
+            display: grid;
+            place-items: center;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.2s var(--smooth);
+            font-size: 24px;
+        }
+
+        .ctrl-btn:hover { color: var(--txt-100); }
+        .ctrl-btn:active { transform: scale(0.9); }
+
+        .play-btn {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            border: none;
+            background: var(--txt-100);
+            color: var(--ink-0);
+            display: grid;
+            place-items: center;
+            cursor: pointer;
+            transition: all 0.25s var(--spring);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.3), 0 0 0 0 var(--emotion-color);
+            font-size: 28px;
+        }
+
+        .play-btn:hover {
+            transform: scale(1.04);
+            box-shadow: 0 12px 32px rgba(0,0,0,0.4), 0 0 0 6px var(--emotion-dim);
+        }
+
+        .play-btn:active {
+            transform: scale(0.95);
+        }
+
+        .play-btn.playing {
+            background: var(--emotion-color);
+            color: var(--ink-0);
+            box-shadow: 0 8px 32px -4px var(--emotion-glow);
+        }
+
+        /* Shuffle / repeat */
+        .ctrl-btn.active { color: var(--emotion-color); }
+
+        /* --- TOOLBAR --- */
+        .toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding-top: 16px;
+            border-top: 1px solid var(--glass-border);
+        }
+
+        .add-pill {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            height: 38px;
+            padding: 0 16px;
+            border-radius: 100px;
+            background: var(--glass-2);
+            border: 1px solid var(--glass-border);
+            color: var(--txt-100);
+            font-size: 0.82rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .add-pill:hover { background: var(--glass-border); border-color: var(--glass-border-hi); }
+        .add-pill:active { transform: scale(0.97); }
+
+        .toolbar-actions {
+            display: flex;
+            gap: 2px;
+        }
+
+        /* --- DRAWERS --- */
+        .drawer {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.5s var(--smooth), opacity 0.4s var(--smooth), margin 0.4s var(--smooth);
+            opacity: 0;
+            margin-top: 0;
+        }
+
+        .drawer.open {
+            max-height: 340px;
+            opacity: 1;
+            margin-top: 16px;
+        }
+
+        .drawer-inner {
+            padding: 4px 2px;
+        }
+
+        /* --- GLASS INPUT --- */
         .glass-input {
-            width: 100%; background: rgba(255,255,255,0.08); border: 1px solid transparent;
-            padding: 14px; border-radius: 12px; color: #fff; margin-bottom: 10px;
-            outline: none; font-size: 0.9rem; transition: 0.3s;
-            font-family: 'Inter', monospace;
+            width: 100%;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid var(--glass-border);
+            padding: 12px 14px;
+            border-radius: 14px;
+            color: var(--txt-100);
+            outline: none;
+            font-size: 0.875rem;
+            font-family: 'Inter', sans-serif;
+            transition: all 0.2s;
             resize: vertical;
         }
-        .glass-input:focus { border-color: var(--accent); background: rgba(255,255,255,0.12); }
-        .full-btn { width: 100%; padding: 12px; background: var(--primary); border: none; border-radius: 12px; color: #fff; font-weight: 600; cursor: pointer; transition: 0.3s; }
-        .full-btn:active { transform: scale(0.98); opacity: 0.85; }
-        .full-btn.secondary { background: var(--border); margin-top: 8px; }
-        .playlist-view { max-height: 200px; overflow-y: auto; }
-        .pl-item { padding: 12px; border-radius: 10px; font-size: 0.9rem; color: var(--text-sub); cursor: pointer; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid rgba(255,255,255,0.03); transition: 0.2s; }
-        .pl-item:active { background: rgba(255,255,255,0.05); }
-        .pl-item.active { background: rgba(255,255,255,0.08); color: #fff; }
-        .phantom-capsule { position: fixed; bottom: calc(30px + var(--safe-bottom)); left: 50%; transform: translateX(-50%) translateY(150px); background: rgba(10, 10, 15, 0.7); backdrop-filter: blur(40px) saturate(180%); -webkit-backdrop-filter: blur(40px) saturate(180%); border: 1px solid rgba(255,255,255,0.1); border-radius: 100px; padding: 6px 8px 6px 10px; display: flex; align-items: center; gap: 14px; z-index: 999; opacity: 0; pointer-events: none; transition: all 0.8s var(--ease-elastic); box-shadow: 0 20px 60px rgba(0,0,0,0.5); }
-        .app-shell.zen .lens-card { opacity: 0; transform: scale(0.92) translateY(-40px); filter: blur(30px); pointer-events: none; }
-        .app-shell.zen ~ .phantom-capsule { transform: translateX(-50%) translateY(0); opacity: 1; pointer-events: auto; }
-        .capsule-core { width: 42px; height: 42px; position: relative; display: grid; place-items: center; border-radius: 50%; flex-shrink: 0; transition: transform 0.05s linear, box-shadow 0.1s linear; }
-        .ring-svg { position: absolute; transform: rotate(-90deg); width: 100%; height: 100%; overflow: visible; }
-        .ring-bg { fill: none; stroke: rgba(255,255,255,0.1); stroke-width: 3; }
-        .ring-progress { fill: none; stroke: #fff; stroke-width: 3; stroke-linecap: round; stroke-dasharray: 100; stroke-dashoffset: 100; transition: stroke-dashoffset 0.1s linear, stroke 0.5s; }
-        .ring-logo { font-size: 20px; z-index: 1; color: #fff; transition: color 0.5s; }
-        .capsule-info { width: 120px; font-size: 0.9rem; font-weight: 600; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: left; }
-        .capsule-btn { width: 44px; height: 44px; border-radius: 50%; background: rgba(255,255,255,0.1); color: #fff; border: none; display: grid; place-items: center; cursor: pointer; flex-shrink: 0; transition: 0.2s; }
-        .capsule-btn:active { background: rgba(255,255,255,0.2); }
-        .toast { position: fixed; top: calc(20px + var(--safe-top)); left: 50%; transform: translateX(-50%) translateY(-20px); background: rgba(20,20,20,0.8); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.1); padding: 10px 20px; border-radius: 30px; font-size: 0.85rem; color: #fff; opacity: 0; transition: 0.4s var(--ease-elastic); z-index: 1000; pointer-events: none; display: flex; align-items: center; gap: 8px; white-space: nowrap; }
-        .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-        input[type="file"] { display: none; }
-        .style-grid {
+
+        .glass-input:focus {
+            border-color: var(--cyan);
+            background: rgba(0,229,204,0.04);
+            box-shadow: 0 0 0 3px rgba(0,229,204,0.08);
+        }
+
+        .glass-input::placeholder { color: var(--txt-35); }
+
+        .glass-input.code {
+            font-family: 'SF Mono', 'Fira Code', 'Fira Mono', monospace;
+            font-size: 0.78rem;
+            line-height: 1.6;
+            min-height: 90px;
+        }
+
+        /* --- BUTTONS --- */
+        .btn-primary {
+            width: 100%;
+            padding: 11px;
+            border: none;
+            border-radius: 12px;
+            background: var(--emotion-color);
+            color: var(--ink-0);
+            font-weight: 700;
+            font-size: 0.85rem;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-top: 8px;
+        }
+
+        .btn-primary:hover { opacity: 0.9; }
+        .btn-primary:active { transform: scale(0.98); }
+
+        .btn-secondary {
+            width: 100%;
+            padding: 11px;
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            background: transparent;
+            color: var(--txt-60);
+            font-weight: 500;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-top: 6px;
+        }
+
+        .btn-secondary:hover { background: var(--glass-2); color: var(--txt-100); }
+        .btn-secondary:active { transform: scale(0.98); }
+
+        /* File upload area */
+        .upload-area {
+            border: 1px dashed var(--glass-border);
+            border-radius: 14px;
+            padding: 18px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-top: 8px;
+        }
+
+        .upload-area:hover {
+            border-color: var(--cyan);
+            background: var(--cyan-dim);
+        }
+
+        .upload-icon {
+            font-size: 22px;
+            color: var(--txt-35);
+        }
+
+        .upload-text {
+            font-size: 0.8rem;
+            color: var(--txt-35);
+        }
+
+        /* --- PLAYLIST --- */
+        .playlist-scroll {
+            max-height: 220px;
+            overflow-y: auto;
+            overscroll-behavior: contain;
+        }
+
+        .playlist-scroll::-webkit-scrollbar { width: 3px; }
+        .playlist-scroll::-webkit-scrollbar-thumb { background: var(--glass-border); border-radius: 2px; }
+
+        .pl-empty {
+            text-align: center;
+            color: var(--txt-35);
+            font-size: 0.82rem;
+            padding: 20px 0;
+        }
+
+        .pl-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 8px;
+            border-radius: 10px;
+            color: var(--txt-60);
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.15s;
+            border-bottom: 1px solid rgba(255,255,255,0.03);
+        }
+
+        .pl-item:hover { background: var(--glass-2); color: var(--txt-100); }
+        .pl-item:last-child { border-bottom: none; }
+
+        .pl-item.active {
+            background: var(--cyan-dim);
+            color: var(--txt-100);
+        }
+
+        .pl-item.active .pl-icon { color: var(--cyan); }
+
+        .pl-icon { font-size: 15px; flex-shrink: 0; }
+        .pl-name { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+        /* --- STYLES GRID --- */
+        .styles-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+
+        .styles-title {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--txt-60);
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .styles-scroll {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
             gap: 8px;
-            max-height: 250px;
+            max-height: 220px;
             overflow-y: auto;
         }
+
+        .styles-scroll::-webkit-scrollbar { width: 3px; }
+        .styles-scroll::-webkit-scrollbar-thumb { background: var(--glass-border); border-radius: 2px; }
+
         .style-card {
-            padding: 10px;
-            background: rgba(255,255,255,0.05);
-            border-radius: 12px;
+            padding: 12px 10px;
+            background: var(--glass-1);
+            border: 1px solid var(--glass-border);
+            border-radius: 14px;
             cursor: pointer;
-            transition: 0.3s;
-            border: 1px solid transparent;
+            transition: all 0.2s;
         }
-        .style-card:hover { background: rgba(255,255,255,0.1); }
-        .style-card.active { border-color: var(--accent); background: rgba(0,210,255,0.1); }
-        .style-name { font-size: 0.85rem; font-weight: 500; margin-bottom: 2px; }
-        .style-desc { font-size: 0.7rem; color: var(--text-sub); }
-        .style-category { font-size: 0.65rem; color: var(--accent); margin-top: 4px; }
-        /* Loading indicator */
-        #loading-indicator {
+
+        .style-card:hover { background: var(--glass-2); border-color: var(--glass-border-hi); }
+
+        .style-card.active {
+            border-color: var(--emotion-color);
+            background: var(--emotion-dim);
+        }
+
+        .style-card-name {
+            font-size: 0.82rem;
+            font-weight: 600;
+            margin-bottom: 2px;
+            color: var(--txt-100);
+        }
+
+        .style-card-desc {
+            font-size: 0.68rem;
+            color: var(--txt-35);
+            line-height: 1.4;
+        }
+
+        .style-card-cat {
+            font-size: 0.6rem;
+            font-weight: 600;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            color: var(--emotion-color);
+            margin-top: 5px;
+        }
+
+        /* Code drawer sections */
+        .code-section-tabs {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 10px;
+        }
+
+        .code-tab {
+            padding: 4px 12px;
+            border-radius: 100px;
+            font-size: 0.72rem;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            border: 1px solid var(--glass-border);
+            background: transparent;
+            color: var(--txt-35);
+            transition: all 0.2s;
+        }
+
+        .code-tab.active {
+            background: var(--cyan-dim);
+            border-color: var(--cyan);
+            color: var(--cyan);
+        }
+
+        /* --- ZEN CAPSULE --- */
+        .zen-capsule {
             position: fixed;
-            top: 50%;
+            bottom: calc(32px + var(--sab));
             left: 50%;
-            transform: translate(-50%, -50%);
-            z-index: 9999;
-            background: rgba(0,0,0,0.8);
-            padding: 20px 40px;
-            border-radius: 20px;
-            text-align: center;
-            transition: opacity 0.5s;
+            transform: translateX(-50%) translateY(140px);
+            background: rgba(8, 8, 14, 0.75);
+            backdrop-filter: blur(40px) saturate(200%);
+            -webkit-backdrop-filter: blur(40px) saturate(200%);
+            border: 1px solid var(--glass-border-hi);
+            border-radius: 100px;
+            padding: 8px 12px 8px 10px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            z-index: 999;
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.7s var(--spring);
+            box-shadow: 0 24px 60px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.04);
         }
-        .spinner {
+
+        /* ZEN MODE */
+        .app.zen .card {
+            opacity: 0;
+            transform: scale(0.9) translateY(-30px);
+            pointer-events: none;
+            filter: blur(20px);
+        }
+
+        .app.zen ~ .zen-capsule {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .capsule-ring-wrap {
+            position: relative;
+            width: 46px;
+            height: 46px;
+            display: grid;
+            place-items: center;
+            flex-shrink: 0;
+        }
+
+        .capsule-ring-svg {
+            position: absolute;
+            transform: rotate(-90deg);
+            width: 46px;
+            height: 46px;
+            overflow: visible;
+        }
+
+        .c-ring-bg { fill: none; stroke: rgba(255,255,255,0.08); stroke-width: 2.5; }
+        .c-ring-fill {
+            fill: none;
+            stroke: var(--emotion-color);
+            stroke-width: 2.5;
+            stroke-linecap: round;
+            stroke-dasharray: 100;
+            stroke-dashoffset: 100;
+            transition: stroke-dashoffset 0.12s linear, stroke 0.4s;
+            filter: drop-shadow(0 0 3px var(--emotion-color));
+        }
+
+        .capsule-icon {
+            font-size: 20px;
+            color: var(--txt-100);
+            z-index: 2;
+            position: relative;
+        }
+
+        .capsule-info {
+            min-width: 100px;
+            max-width: 140px;
+        }
+
+        .capsule-track {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--txt-100);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .capsule-mood {
+            font-size: 0.68rem;
+            color: var(--emotion-color);
+            margin-top: 1px;
+            letter-spacing: 0.3px;
+        }
+
+        .capsule-play-btn {
             width: 40px;
             height: 40px;
-            border: 3px solid rgba(255,255,255,0.1);
-            border-top-color: #00d2ff;
             border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 10px;
+            background: var(--glass-2);
+            border: 1px solid var(--glass-border);
+            color: var(--txt-100);
+            display: grid;
+            place-items: center;
+            cursor: pointer;
+            flex-shrink: 0;
+            transition: all 0.2s;
+            font-size: 18px;
         }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        /* Breathing animation for playing state */
-        .lens-card.breathing {
-            animation: breathe 4s ease-in-out infinite;
+
+        .capsule-play-btn:hover { background: var(--glass-border); }
+        .capsule-play-btn:active { transform: scale(0.9); }
+
+        /* --- TOAST --- */
+        .toast {
+            position: fixed;
+            top: calc(18px + var(--sat));
+            left: 50%;
+            transform: translateX(-50%) translateY(-16px);
+            background: rgba(15, 15, 20, 0.9);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border-hi);
+            padding: 9px 18px;
+            border-radius: 100px;
+            font-size: 0.8rem;
+            color: var(--txt-100);
+            opacity: 0;
+            transition: all 0.35s var(--spring);
+            z-index: 1000;
+            pointer-events: none;
+            white-space: nowrap;
+            letter-spacing: 0.2px;
         }
-        @keyframes breathe {
-            0%, 100% { box-shadow: 0 30px 80px -20px rgba(0,0,0,0.5); }
-            50% { box-shadow: 0 30px 80px -20px rgba(142,45,226,0.3); }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
         }
-        /* Scrollbar */
-        ::-webkit-scrollbar { width: 4px; }
+
+        /* --- EMOTION STATES (dynamic theming) --- */
+        [data-emotion="energized"] {
+            --emotion-color: var(--gold);
+            --emotion-glow: rgba(240,180,41,0.4);
+            --emotion-dim: var(--gold-dim);
+        }
+
+        [data-emotion="tender"] {
+            --emotion-color: var(--rose);
+            --emotion-glow: rgba(255,107,157,0.4);
+            --emotion-dim: var(--rose-dim);
+        }
+
+        [data-emotion="focused"] {
+            --emotion-color: #a78bfa;
+            --emotion-glow: rgba(167,139,250,0.4);
+            --emotion-dim: rgba(167,139,250,0.12);
+        }
+
+        [data-emotion="serene"] {
+            --emotion-color: var(--cyan);
+            --emotion-glow: var(--cyan-glow);
+            --emotion-dim: var(--cyan-dim);
+        }
+
+        /* Waveform bars idle animation */
+        .waveform-bar:nth-child(1) { animation: wb 1.8s ease-in-out infinite; }
+        .waveform-bar:nth-child(2) { animation: wb 1.4s ease-in-out infinite 0.15s; }
+        .waveform-bar:nth-child(3) { animation: wb 1.6s ease-in-out infinite 0.05s; }
+        .waveform-bar:nth-child(4) { animation: wb 1.2s ease-in-out infinite 0.25s; }
+        .waveform-bar:nth-child(5) { animation: wb 1.9s ease-in-out infinite 0.1s; }
+        .waveform-bar:nth-child(6) { animation: wb 1.5s ease-in-out infinite 0.3s; }
+        .waveform-bar:nth-child(7) { animation: wb 1.7s ease-in-out infinite 0.2s; }
+        .waveform-bar:nth-child(8) { animation: wb 1.3s ease-in-out infinite 0.08s; }
+        .waveform-bar:nth-child(9) { animation: wb 1.6s ease-in-out infinite 0.18s; }
+        .waveform-bar:nth-child(10) { animation: wb 1.4s ease-in-out infinite 0.12s; }
+        .waveform-bar:nth-child(11) { animation: wb 1.8s ease-in-out infinite 0.22s; }
+        .waveform-bar:nth-child(12) { animation: wb 1.5s ease-in-out infinite 0.04s; }
+
+        @keyframes wb {
+            0%, 100% { height: 6px; }
+            50% { height: 32px; }
+        }
+
+        /* Mic active */
+        .icon-btn.mic-active { color: var(--cyan) !important; }
+        .icon-btn.mic-active i { animation: mic-pulse 1.5s ease-in-out infinite; }
+
+        @keyframes mic-pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        /* --- Responsive: narrow viewport --- */
+        @media (max-height: 680px) {
+            .album-art-wrap { display: none; }
+            .card { padding: 20px 20px 16px; gap: 0; }
+        }
+
+        /* --- SCROLLBAR GLOBAL --- */
+        ::-webkit-scrollbar { width: 3px; }
         ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 2px; }
+        ::-webkit-scrollbar-thumb { background: var(--glass-border); border-radius: 2px; }
+
+        /* hidden file input */
+        #file-input { display: none; }
+
+        /* Keyboard accessible focus rings */
+        *:focus-visible {
+            outline: 2px solid var(--cyan);
+            outline-offset: 2px;
+        }
+
+        /* Prevent FOUC */
+        .card, .zen-capsule { will-change: transform, opacity; }
     </style>
 </head>
 <body>
-    <div id="loading-indicator">
-        <div class="spinner"></div>
-        <span style="color: #fff; font-size: 0.9rem;">初始化可视化引擎...</span>
+    <!-- LOADER -->
+    <div id="loader">
+        <div class="loader-logo">Sonoria</div>
+        <div class="loader-ring"></div>
+        <div class="loader-text">Initializing</div>
     </div>
-    <canvas id="visualizer"></canvas>
-    <div class="vignette"></div>
-    <div class="app-shell" id="app-shell">
-        <div class="lens-card" id="card">
-            <div class="header">
-                <button class="icon-btn" onclick="enterZenMode()" title="最小化/沉浸">
-                    <i class="material-icons-round">keyboard_arrow_down</i>
+
+    <!-- VISUALIZER CANVAS -->
+    <canvas id="visualizer" aria-hidden="true"></canvas>
+    <div class="vignette" aria-hidden="true"></div>
+
+    <!-- APP -->
+    <main class="app" id="app" role="main">
+        <article class="card" id="card" aria-label="Music player">
+
+            <!-- HEADER -->
+            <header class="header">
+                <button class="icon-btn" id="zen-btn" onclick="enterZenMode()" title="Focus mode" aria-label="Enter focus mode">
+                    <i class="material-icons-round">expand_more</i>
                 </button>
-                <div class="brand">SONORIA</div>
-                <button class="icon-btn" onclick="toggleDrawer('playlist-drawer')" title="列表">
+
+                <div class="emotion-badge" id="emotion-badge" data-emotion="serene">
+                    <div class="emotion-dot"></div>
+                    <span class="emotion-label" id="emotion-label">Serene</span>
+                </div>
+
+                <button class="icon-btn" onclick="toggleDrawer('playlist-drawer')" title="Playlist" aria-label="Toggle playlist">
                     <i class="material-icons-round">queue_music</i>
                 </button>
-            </div>
-            <div class="hero-text">
-                <div class="title" id="track-title">Soul Frequency</div>
-                <div class="artist" id="track-artist">Touch to start</div>
-            </div>
-            <div class="drawer" id="input-drawer">
-                <input type="text" class="glass-input" id="url-input" placeholder="粘贴音频链接 (mp3/wav) 并回车...">
-                <div class="action-row">
-                    <button class="full-btn" onclick="document.getElementById('file-input').click()">
-                        <i class="material-icons-round" style="vertical-align:middle; font-size:18px;">folder_open</i> 本地文件
-                    </button>
+            </header>
+
+            <!-- ALBUM ART / MINI VIZ -->
+            <div class="album-art-wrap" id="album-art-wrap">
+                <div class="album-art" id="album-art">
+                    <canvas class="album-art-canvas" id="album-canvas" aria-hidden="true"></canvas>
+                    <div class="album-waveform" id="album-waveform" aria-hidden="true">
+                        <div class="waveform-bar" style="height:8px"></div>
+                        <div class="waveform-bar" style="height:18px"></div>
+                        <div class="waveform-bar" style="height:28px"></div>
+                        <div class="waveform-bar" style="height:14px"></div>
+                        <div class="waveform-bar" style="height:32px"></div>
+                        <div class="waveform-bar" style="height:20px"></div>
+                        <div class="waveform-bar" style="height:36px"></div>
+                        <div class="waveform-bar" style="height:24px"></div>
+                        <div class="waveform-bar" style="height:30px"></div>
+                        <div class="waveform-bar" style="height:16px"></div>
+                        <div class="waveform-bar" style="height:22px"></div>
+                        <div class="waveform-bar" style="height:12px"></div>
+                    </div>
+                    <div class="album-playing-ring"></div>
                 </div>
             </div>
-            <div class="drawer" id="playlist-drawer">
-                <div class="playlist-view" id="playlist-view">
-                    <div style="text-align:center; color:var(--text-sub); padding:10px;">列表为空</div>
+
+            <!-- TRACK META -->
+            <div class="track-meta">
+                <div class="track-title" id="track-title">Soul Frequency</div>
+                <div class="track-artist" id="track-artist">Touch to begin</div>
+            </div>
+
+            <!-- DRAWERS -->
+            <div class="drawer" id="input-drawer" role="region" aria-label="Add music">
+                <div class="drawer-inner">
+                    <input type="text" class="glass-input" id="url-input"
+                        placeholder="Paste audio URL (mp3 / wav) and press Enter..."
+                        aria-label="Audio URL input">
+                    <div class="upload-area" onclick="document.getElementById('file-input').click()" role="button" tabindex="0" aria-label="Upload local files" onkeypress="if(event.key==='Enter')document.getElementById('file-input').click()">
+                        <i class="material-icons-round upload-icon">upload_file</i>
+                        <span class="upload-text">Drop or click to upload audio</span>
+                    </div>
                 </div>
             </div>
-            <div class="drawer" id="hydra-drawer">
-                <textarea class="glass-input" id="hydra-code" rows="6" placeholder="输入Hydra代码，点击运行...">
-s.osc(30, 0.1, a.low).rotate(time * 0.1).out()
-                </textarea>
-                <button class="full-btn" onclick="runHydra()">运行视觉效果</button>
-                <button class="full-btn secondary" onclick="resetHydra()">重置为主题预设</button>
+
+            <div class="drawer" id="playlist-drawer" role="region" aria-label="Playlist">
+                <div class="drawer-inner">
+                    <div class="playlist-scroll" id="playlist-view">
+                        <div class="pl-empty">No tracks yet — add music below</div>
+                    </div>
+                </div>
             </div>
-            <div class="drawer" id="strudel-drawer">
-                <textarea class="glass-input" id="strudel-code" rows="8" placeholder="输入Strudel代码，点击运行...">
-// 柔和弦乐Disco
+
+            <div class="drawer" id="styles-drawer" role="region" aria-label="Visual styles">
+                <div class="drawer-inner">
+                    <div class="styles-header">
+                        <span class="styles-title">Visual Mode</span>
+                        <button class="icon-btn" style="width:32px;height:32px;font-size:16px" onclick="randomSmartTheme()" title="Smart shuffle" aria-label="Smart shuffle visual style">
+                            <i class="material-icons-round">auto_fix_high</i>
+                        </button>
+                    </div>
+                    <div class="styles-scroll" id="style-grid" role="listbox" aria-label="Visual styles"></div>
+                </div>
+            </div>
+
+            <div class="drawer" id="code-drawer" role="region" aria-label="Creative code editor">
+                <div class="drawer-inner">
+                    <div class="code-section-tabs">
+                        <button class="code-tab active" id="hydra-tab" onclick="switchCodeTab('hydra')" aria-pressed="true">Visual</button>
+                        <button class="code-tab" id="strudel-tab" onclick="switchCodeTab('strudel')" aria-pressed="false">Music</button>
+                    </div>
+                    <div id="hydra-panel">
+                        <textarea class="glass-input code" id="hydra-code" rows="5" aria-label="Hydra visual code">s.osc(30, 0.1, a.low).rotate(time * 0.1).out()</textarea>
+                        <button class="btn-primary" onclick="runHydra()">Apply Visual</button>
+                        <button class="btn-secondary" onclick="resetHydra()">Reset to Theme</button>
+                    </div>
+                    <div id="strudel-panel" style="display:none">
+                        <textarea class="glass-input code" id="strudel-code" rows="5" aria-label="Strudel music code">// Soft Disco
 bpm(122)
 stack(
   s("bd ~ ~ ~ bd ~ ~ ~").gain(0.8),
   s("~ ~ sd ~ ~ ~ sd ~").gain(0.6),
   s("hh*8 oh/4").gain(0.4),
-  s("~ cowbell ~ cowbell").gain(0.25),
-  n("c2 ~ e2 ~ g2 ~ a2 ~").s("fm").dur(0.5).lpf(600).gain(0.55),
-  n("c4 e4 g4 a4 g4 e4 c4 ~").s("square").stutter(2).dur(0.5).lpf(1600).delay(0.25).delaytime(1/8).gain(0.28),
-  n("c3 e3 g3, f3 a3 c4, g3 b3 d4, c3 e3 g3").s("strings").dur(2).lpf(2200).reverb(0.75).gain(0.22),
-  n("c4 e4 g4 c5, f4 a4 c5 f5, g4 b4 d5 g5, c4 e4 g4 c5").s("harp").dur(0.25).slow(2).reverb(0.8).delay(0.2).delaytime(1/4).gain(0.15)
-)
-                </textarea>
-                <button class="full-btn" onclick="runStrudel()">运行音乐代码</button>
-                <button class="full-btn secondary" onclick="stopStrudel()">停止生成</button>
+  n("c3 e3 g3, f3 a3 c4").s("strings").dur(2).reverb(0.75).gain(0.22)
+)</textarea>
+                        <button class="btn-primary" onclick="runStrudel()">Generate Music</button>
+                        <button class="btn-secondary" onclick="stopStrudel()">Stop</button>
+                    </div>
+                </div>
             </div>
-            <div class="drawer" id="styles-drawer">
-                <div style="margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
-                    <span style="font-weight: 500;">可视化风格</span>
-                    <button class="icon-btn" style="width: 32px; height: 32px; font-size: 18px;" onclick="randomSmartTheme()" title="智能推荐">
-                        <i class="material-icons-round">smart_toy</i>
+
+            <!-- PROGRESS -->
+            <div class="progress-wrap" id="progress-wrap" role="slider" aria-label="Playback progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+                <div class="progress-track">
+                    <div class="progress-fill" id="progress-fill"></div>
+                </div>
+                <div class="time-row">
+                    <span id="curr-time">0:00</span>
+                    <span id="total-time">0:00</span>
+                </div>
+            </div>
+
+            <!-- CONTROLS -->
+            <nav class="controls" aria-label="Playback controls">
+                <button class="ctrl-btn" id="shuffle-btn" onclick="toggleShuffle()" title="Shuffle" aria-label="Toggle shuffle">
+                    <i class="material-icons-round">shuffle</i>
+                </button>
+                <button class="ctrl-btn" onclick="engine.playPrev()" title="Previous" aria-label="Previous track">
+                    <i class="material-icons-round">skip_previous</i>
+                </button>
+                <button class="play-btn" id="main-play" aria-label="Play / Pause">
+                    <i class="material-icons-round">play_arrow</i>
+                </button>
+                <button class="ctrl-btn" onclick="engine.playNext()" title="Next" aria-label="Next track">
+                    <i class="material-icons-round">skip_next</i>
+                </button>
+                <button class="ctrl-btn" id="repeat-btn" onclick="toggleRepeat()" title="Repeat" aria-label="Toggle repeat">
+                    <i class="material-icons-round">repeat</i>
+                </button>
+            </nav>
+
+            <!-- TOOLBAR -->
+            <div class="toolbar" role="toolbar" aria-label="Tools">
+                <button class="add-pill" onclick="toggleDrawer('input-drawer')" aria-label="Add music">
+                    <i class="material-icons-round" style="font-size:16px">add</i>
+                    Add
+                </button>
+                <div class="toolbar-actions">
+                    <button class="icon-btn" onclick="toggleDrawer('styles-drawer')" title="Visual styles" aria-label="Toggle visual styles">
+                        <i class="material-icons-round">palette</i>
+                    </button>
+                    <button class="icon-btn" onclick="toggleDrawer('code-drawer')" title="Creative code" aria-label="Toggle code editor">
+                        <i class="material-icons-round">code</i>
+                    </button>
+                    <button class="icon-btn" id="mic-btn" title="Air resonance (microphone)" aria-label="Toggle microphone">
+                        <i class="material-icons-round">graphic_eq</i>
                     </button>
                 </div>
-                <div class="style-grid" id="style-grid"></div>
             </div>
-            <div class="progress-container" id="progress-container">
-                <div class="progress-rail"><div class="progress-fill" id="progress-fill"></div></div>
-                <div class="time-meta"><span id="curr-time">0:00</span><span id="total-time">0:00</span></div>
-            </div>
-            <div class="controls">
-                <button class="sub-btn" onclick="engine.playPrev()"><i class="material-icons-round">skip_previous</i></button>
-                <button class="play-btn" id="main-play"><i class="material-icons-round">play_arrow</i></button>
-                <button class="sub-btn" onclick="engine.playNext()"><i class="material-icons-round">skip_next</i></button>
-            </div>
-            <div class="toolbar">
-                <button class="pill" onclick="toggleDrawer('input-drawer')"><i class="material-icons-round">add</i> 添加</button>
-                <button class="icon-btn" id="magic-btn" onclick="randomSmartTheme()" title="智能切换主题"><i class="material-icons-round">auto_awesome</i></button>
-                <button class="icon-btn" id="styles-btn" onclick="toggleDrawer('styles-drawer')" title="风格选择"><i class="material-icons-round">palette</i></button>
-                <button class="icon-btn" id="strudel-btn" onclick="toggleDrawer('strudel-drawer')" title="音乐代码"><i class="material-icons-round">code</i></button>
-                <button class="icon-btn" id="mic-btn" title="空气共鸣"><i class="material-icons-round">blur_on</i></button>
-            </div>
-        </div>
-    </div>
-    <div class="phantom-capsule" id="capsule">
-        <div class="capsule-core" id="capsule-core">
-            <svg class="ring-svg" viewBox="0 0 36 36">
-                <path class="ring-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                <path class="ring-progress" id="ring-progress" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-            </svg>
-            <i class="material-icons-round ring-logo" id="ring-logo">graphic_eq</i>
-        </div>
-        <div class="capsule-info" id="capsule-text">Soul Frequency</div>
-        <button class="capsule-btn" id="capsule-play"><i class="material-icons-round">play_arrow</i></button>
-    </div>
-    <div class="toast" id="toast"><span id="toast-msg">Ready</span></div>
-    <input type="file" id="file-input" accept="audio/wav,audio/mp3,audio/m4a,audio/*" multiple>
+        </article>
+    </main>
 
-    <!-- Sonoria V6.0 — Modular Architecture -->
+    <!-- ZEN CAPSULE -->
+    <div class="zen-capsule" id="capsule" role="complementary" aria-label="Mini player">
+        <div class="capsule-ring-wrap">
+            <svg class="capsule-ring-svg" viewBox="0 0 46 46" aria-hidden="true">
+                <circle class="c-ring-bg" cx="23" cy="23" r="19.1"/>
+                <circle class="c-ring-fill" id="ring-progress" cx="23" cy="23" r="19.1" pathLength="100"/>
+            </svg>
+            <i class="material-icons-round capsule-icon" id="ring-logo">graphic_eq</i>
+        </div>
+        <div class="capsule-info">
+            <div class="capsule-track" id="capsule-text">Soul Frequency</div>
+            <div class="capsule-mood" id="capsule-mood">Serene</div>
+        </div>
+        <button class="capsule-play-btn" id="capsule-play" aria-label="Play / Pause">
+            <i class="material-icons-round">play_arrow</i>
+        </button>
+    </div>
+
+    <!-- TOAST -->
+    <div class="toast" id="toast" role="status" aria-live="polite">
+        <span id="toast-msg">Ready</span>
+    </div>
+
+    <!-- HIDDEN FILE INPUT -->
+    <input type="file" id="file-input" accept="audio/*" multiple aria-hidden="true">
+
+    <!-- SCRIPTS -->
     <script src="js/webgl-detect.js"></script>
     <script src="js/styles-config.js"></script>
     <script src="js/utils.js"></script>
@@ -256,5 +1188,60 @@ stack(
     <script src="js/audio-engine.js"></script>
     <script src="js/ui-controller.js"></script>
     <script src="js/main.js"></script>
+
+    <script>
+        /* ===== Inline helpers called from HTML onclick attrs ===== */
+
+        function toggleDrawer(id) {
+            window.SonoriaUI && window.SonoriaUI.toggleDrawer(id);
+        }
+
+        function enterZenMode() {
+            window.SonoriaUI && window.SonoriaUI.enterZenMode();
+        }
+
+        function runHydra() {
+            window.SonoriaUI && window.SonoriaUI.runHydra();
+        }
+
+        function resetHydra() {
+            window.SonoriaUI && window.SonoriaUI.resetHydra();
+        }
+
+        function runStrudel() {
+            window.SonoriaUI && window.SonoriaUI.runStrudel();
+        }
+
+        function stopStrudel() {
+            window.SonoriaUI && window.SonoriaUI.stopStrudel();
+        }
+
+        function randomSmartTheme() {
+            window.SonoriaUI && window.SonoriaUI.randomSmartTheme();
+        }
+
+        function switchCodeTab(tab) {
+            document.getElementById('hydra-panel').style.display = tab === 'hydra' ? '' : 'none';
+            document.getElementById('strudel-panel').style.display = tab === 'strudel' ? '' : 'none';
+            document.getElementById('hydra-tab').classList.toggle('active', tab === 'hydra');
+            document.getElementById('strudel-tab').classList.toggle('active', tab === 'strudel');
+            document.getElementById('hydra-tab').setAttribute('aria-pressed', tab === 'hydra');
+            document.getElementById('strudel-tab').setAttribute('aria-pressed', tab === 'strudel');
+        }
+
+        function toggleShuffle() {
+            window.state.shuffle = !window.state.shuffle;
+            var btn = document.getElementById('shuffle-btn');
+            if (btn) btn.classList.toggle('active', window.state.shuffle);
+            window.SonoriaUtils && window.SonoriaUtils.showToast(window.state.shuffle ? 'Shuffle on' : 'Shuffle off');
+        }
+
+        function toggleRepeat() {
+            window.state.repeat = !window.state.repeat;
+            var btn = document.getElementById('repeat-btn');
+            if (btn) btn.classList.toggle('active', window.state.repeat);
+            window.SonoriaUtils && window.SonoriaUtils.showToast(window.state.repeat ? 'Repeat on' : 'Repeat off');
+        }
+    </script>
 </body>
 </html>
