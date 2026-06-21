@@ -28,7 +28,6 @@ jobs:
             *.js
             *.md
             js/
-            backup/
           retention-days: 1
 
       - name: Deploy to GitHub Pages
