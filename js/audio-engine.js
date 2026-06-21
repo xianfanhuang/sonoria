@@ -283,24 +283,30 @@
     };
     AudioEngine.prototype.startUI = function () {
         window.state.playing = true;
-        window.ui.playBtns.forEach(function (b) {
-            b.innerHTML = '<i class="material-icons-round">pause</i>';
+        var btns = window.ui.playBtns || window.ui.playBtn || [];
+        btns.forEach(function (b) {
+            if (b) b.innerHTML = '<i class="material-icons-round">pause</i>';
         });
-        window.ui.card.classList.add('breathing');
+        var mainPlay = document.getElementById('main-play');
+        if (mainPlay) mainPlay.classList.add('playing');
+        if (window.ui.card) window.ui.card.classList.add('breathing');
         this.viz.start();
         window.SonoriaUI && window.SonoriaUI.resetZen();
     };
     AudioEngine.prototype.stopUI = function () {
         window.state.playing = false;
-        window.ui.playBtn.forEach(function (b) {
-            b.innerHTML = '<i class="material-icons-round">play_arrow</i>';
+        var btns = window.ui.playBtns || window.ui.playBtn || [];
+        btns.forEach(function (b) {
+            if (b) b.innerHTML = '<i class="material-icons-round">play_arrow</i>';
         });
-        window.ui.card.classList.remove('breathing');
-        window.ui.shell.classList.remove('zen');
-        window.ui.pFill.style.width = '0%';
-        window.ui.cTime.innerText = '0:00';
-        window.ui.tTime.innerText = '0:00';
-        window.ui.ringProgress.style.strokeDashoffset = 100;
+        var mainPlay = document.getElementById('main-play');
+        if (mainPlay) mainPlay.classList.remove('playing');
+        if (window.ui.card) window.ui.card.classList.remove('breathing');
+        if (window.ui.shell) window.ui.shell.classList.remove('zen');
+        if (window.ui.pFill) window.ui.pFill.style.width = '0%';
+        if (window.ui.cTime) window.ui.cTime.innerText = '0:00';
+        if (window.ui.tTime) window.ui.tTime.innerText = '0:00';
+        if (window.ui.ringProgress) window.ui.ringProgress.style.strokeDashoffset = 100;
     };
     window.AudioEngine = AudioEngine;
 })();

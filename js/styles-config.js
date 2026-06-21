@@ -1,157 +1,298 @@
 /**
- * Visualization Styles
- * Hydra 渲染函数（GPU 模式）和风格元数据
+ * Visualization Styles & Emotion System v7.0
+ * Sonoria — 情感感知可视化风格配置
  *
- * 每种风格都定义了：
- *   - id, name, category, description（UI 展示）
- *   - gpuReq, energyRange, bpmRange, performanceLevel（智能推荐依据）
- *   - render(hue, low, mid, high, energy)（Hydra 输出）
+ * 每种风格定义：
+ *   - id, name, nameEn, category, description
+ *   - emotion: 对应情感状态 (serene | energized | tender | focused)
+ *   - gpuReq, performanceLevel, energyRange, bpmRange
+ *   - render(hue, low, mid, high, energy) — Hydra GPU 渲染
  *
- * Canvas 2D 降级时，渲染函数不直接使用，但风格 id/name 仍生效
- * （Canvas 2D 渲染器在 visualizer.js 中按 styleId 分支处理）
+ * 情感系统：
+ *   serene    → 宁静 (青色)  — 流动、星云、液体类
+ *   energized → 活力 (金色)  — 频谱、脉冲、漩涡类
+ *   tender    → 温柔 (玫瑰)  — 花朵、微光、柔波类
+ *   focused   → 专注 (紫色)  — 神经、几何、矩阵类
  */
+
 window.visualStyles = [
+    /* ===================== SERENE ===================== */
     {
-        id: 'aurora', name: '极光', category: '自然', gpuReq: 'medium',
-        description: '流动的彩色光带',
-        energyRange: [0, 1], bpmRange: [60, 180], performanceLevel: 2,
+        id: 'aurora',
+        name: '极光',
+        nameEn: 'Aurora',
+        category: 'Nature',
+        description: 'Flowing colorful light curtains',
+        emotion: 'serene',
+        gpuReq: 'medium',
+        energyRange: [0, 1],
+        bpmRange: [60, 180],
+        performanceLevel: 2,
         render: function (hue, low, mid, high, energy) {
             s.osc(10, 0.1, function () { return low * 2; })
               .rotate(function () { return time * 0.2; })
               .modulate(s.noise(3, 0.5), function () { return energy * 0.5; })
-              .color(function () { return hue % 360 / 360; }, 0.8, 0.6)
+              .color(function () { return hue / 360; }, 0.8, 0.6)
               .blend(s.osc(20, 0.05).color(0.6, 0.8, 1), 0.3)
               .out();
         }
     },
     {
-        id: 'cosmic', name: '宇宙', category: '宇宙', gpuReq: 'low',
-        description: '闪烁的星空粒子',
-        energyRange: [0, 0.7], bpmRange: [60, 140], performanceLevel: 1,
+        id: 'nebula',
+        name: '星云',
+        nameEn: 'Nebula',
+        category: 'Cosmos',
+        description: 'Drifting cosmic gas clouds',
+        emotion: 'serene',
+        gpuReq: 'medium',
+        energyRange: [0, 0.5],
+        bpmRange: [60, 120],
+        performanceLevel: 2,
         render: function (hue, low, mid, high, energy) {
-            s.noise(100, 0.1)
-              .thresh(function () { return 0.5 + low * 0.5; })
-              .scale(1, 1, 2)
-              .color(0.7, 0.3, 1)
-              .add(s.noise(80, 0.2).thresh(0.7).color(0.3, 0.7, 1), 0.5)
+            s.osc(5, 0.2, function () { return low; })
+              .modulate(s.noise(2, 0.3), 0.5)
+              .color(function () { return hue / 360; }, 0.5, 0.9)
+              .brightness(function () { return energy * 0.2; })
               .out();
         }
     },
     {
-        id: 'neural', name: '神经', category: '几何', gpuReq: 'high',
-        description: '动态神经网络',
-        energyRange: [0.3, 1], bpmRange: [90, 160], performanceLevel: 3,
-        render: function (hue, low, mid, high, energy) {
-            s.shape(4, 0.02, 0)
-              .repeat(20, 20)
-              .modulate(s.noise(2, 0.3), function () { return mid * 0.3; })
-              .color(1, 0.2, 0.4)
-              .blend(s.shape(3, 0.01).repeat(15, 15).color(0.8, 0.1, 0.3), 0.4)
-              .out();
-        }
-    },
-    {
-        id: 'liquid', name: '液体', category: '流体', gpuReq: 'medium',
-        description: '液态金属波纹',
-        energyRange: [0.2, 0.9], bpmRange: [80, 160], performanceLevel: 2,
+        id: 'liquid',
+        name: '液体',
+        nameEn: 'Liquid',
+        category: 'Fluid',
+        description: 'Liquid metal ripples',
+        emotion: 'serene',
+        gpuReq: 'medium',
+        energyRange: [0.2, 0.9],
+        bpmRange: [80, 160],
+        performanceLevel: 2,
         render: function (hue, low, mid, high, energy) {
             s.gradient()
               .modulate(s.osc(5, 0.1, function () { return high * 3; }), 0.2)
-              .color(0.5, 0.8, 1)
+              .color(function () { return hue / 360; }, 0.8, 1)
               .contrast(1.5)
               .brightness(function () { return energy * 0.3; })
               .out();
         }
     },
     {
-        id: 'spectrum', name: '频谱', category: '频谱', gpuReq: 'low',
-        description: '响应式频谱柱',
-        energyRange: [0, 1], bpmRange: [60, 200], performanceLevel: 1,
-        render: function (hue, low, mid, high, energy) {
-            s.noise(64, 0.05)
-              .thresh(function () { return 0.3 + energy * 0.4; })
-              .color(function () { return hue % 360 / 360; }, 0.8, 0.6)
-              .add(s.noise(32, 0.1).thresh(0.6).color(0.3, 0.7, 1), 0.3)
-              .out();
-        }
-    },
-    {
-        id: 'nebula', name: '星云', category: '宇宙', gpuReq: 'medium',
-        description: '流动的星云气体',
-        energyRange: [0, 0.5], bpmRange: [60, 120], performanceLevel: 2,
-        render: function (hue, low, mid, high, energy) {
-            s.osc(5, 0.2, function () { return low; })
-              .modulate(s.noise(2, 0.3), 0.5)
-              .color(0.8, 0.3, 0.9)
-              .brightness(function () { return energy * 0.2; })
-              .out();
-        }
-    },
-    {
-        id: 'crystal', name: '水晶', category: '几何', gpuReq: 'medium',
-        description: '折射的水晶结构',
-        energyRange: [0.2, 0.8], bpmRange: [70, 150], performanceLevel: 2,
-        render: function (hue, low, mid, high, energy) {
-            s.shape(6, 0.1, 0)
-              .rotate(function () { return time * 0.1; })
-              .scale(function () { return 0.8 + mid * 0.4; })
-              .color(function () { return hue % 360 / 360; }, 0.7, 0.8)
-              .out();
-        }
-    },
-    {
-        id: 'matrix', name: '矩阵', category: '数字', gpuReq: 'low',
-        description: '数字雨效果',
-        energyRange: [0.1, 0.9], bpmRange: [80, 180], performanceLevel: 1,
-        render: function (hue, low, mid, high, energy) {
-            s.noise(200, 0.05)
-              .thresh(0.8)
-              .color(0, 1, 0)
-              .add(s.noise(150, 0.1).thresh(0.8).color(0.8, 0.9, 1), 0.5)
-              .out();
-        }
-    },
-    {
-        id: 'flow', name: '流动', category: '流体', gpuReq: 'high',
-        description: '平滑的流体运动',
-        energyRange: [0.2, 0.8], bpmRange: [80, 140], performanceLevel: 3,
+        id: 'flow',
+        name: '流动',
+        nameEn: 'Flow',
+        category: 'Fluid',
+        description: 'Smooth morphing flow fields',
+        emotion: 'serene',
+        gpuReq: 'high',
+        energyRange: [0.2, 0.8],
+        bpmRange: [80, 140],
+        performanceLevel: 3,
         render: function (hue, low, mid, high, energy) {
             s.noise(3, 0.4)
               .modulate(s.osc(2, 0.1, function () { return mid; }), 0.4)
-              .color(function () { return hue % 360 / 360; }, 0.6, 0.7)
-              .blend(s.noise(4, 0.3).color(function () { return (hue % 360 / 360 + 0.1) % 1; }, 0.5, 0.8), 0.3)
+              .color(function () { return hue / 360; }, 0.6, 0.7)
+              .blend(s.noise(4, 0.3).color(function () { return (hue / 360 + 0.1) % 1; }, 0.5, 0.8), 0.3)
               .out();
         }
     },
     {
-        id: 'pulse', name: '脉冲', category: '几何', gpuReq: 'low',
-        description: '中心扩散的脉冲波',
-        energyRange: [0.3, 1], bpmRange: [90, 160], performanceLevel: 1,
+        id: 'bloom',
+        name: '花绽',
+        nameEn: 'Bloom',
+        category: 'Nature',
+        description: 'Organic bloom patterns',
+        emotion: 'tender',
+        gpuReq: 'medium',
+        energyRange: [0, 0.7],
+        bpmRange: [60, 120],
+        performanceLevel: 2,
         render: function (hue, low, mid, high, energy) {
-            s.shape(10, 0.02, 0)
-              .scale(function () { return 0.5 + low * 0.5; })
-              .color(function () { return hue % 360 / 360; }, 0.8, 0.6)
+            s.shape(6, function () { return 0.3 + mid * 0.4; }, 0.3)
+              .rotate(function () { return time * 0.05; })
+              .modulate(s.noise(2, 0.3), function () { return low * 0.3; })
+              .color(function () { return (hue + 20) / 360; }, 0.7, 0.8)
+              .blend(s.shape(4, function () { return 0.2 + high * 0.3; }).color(function () { return hue / 360; }, 0.5, 0.9), 0.4)
+              .out();
+        }
+    },
+
+    /* ===================== ENERGIZED ===================== */
+    {
+        id: 'spectrum',
+        name: '频谱',
+        nameEn: 'Spectrum',
+        category: 'Audio',
+        description: 'Reactive frequency bars',
+        emotion: 'energized',
+        gpuReq: 'low',
+        energyRange: [0, 1],
+        bpmRange: [60, 200],
+        performanceLevel: 1,
+        render: function (hue, low, mid, high, energy) {
+            s.noise(64, 0.05)
+              .thresh(function () { return 0.3 + energy * 0.4; })
+              .color(function () { return hue / 360; }, 0.9, 0.7)
+              .add(s.noise(32, 0.1).thresh(0.6).color(function () { return (hue + 30) / 360; }, 0.7, 1), 0.3)
               .out();
         }
     },
     {
-        id: 'vortex', name: '漩涡', category: '流体', gpuReq: 'medium',
-        description: '旋转的能量漩涡',
-        energyRange: [0.4, 1], bpmRange: [100, 180], performanceLevel: 2,
+        id: 'pulse',
+        name: '脉冲',
+        nameEn: 'Pulse',
+        category: 'Geometric',
+        description: 'Radial burst from center',
+        emotion: 'energized',
+        gpuReq: 'low',
+        energyRange: [0.3, 1],
+        bpmRange: [90, 200],
+        performanceLevel: 1,
+        render: function (hue, low, mid, high, energy) {
+            s.shape(12, function () { return 0.5 + low * 0.5; }, 0)
+              .scale(function () { return 0.5 + low * 0.7; })
+              .repeat(1, 1)
+              .color(function () { return hue / 360; }, 0.9, 0.7)
+              .contrast(1.3)
+              .out();
+        }
+    },
+    {
+        id: 'vortex',
+        name: '漩涡',
+        nameEn: 'Vortex',
+        category: 'Fluid',
+        description: 'Spinning energy vortex',
+        emotion: 'energized',
+        gpuReq: 'medium',
+        energyRange: [0.4, 1],
+        bpmRange: [100, 200],
+        performanceLevel: 2,
         render: function (hue, low, mid, high, energy) {
             s.noise(4, 0.3)
-              .rotate(function () { return time * 0.3 + mid * 0.5; })
+              .rotate(function () { return time * 0.4 + mid * 0.8; })
               .modulate(s.osc(3, 0.1, function () { return low; }), 0.3)
-              .color(function () { return hue % 360 / 360; }, 0.7, 0.6)
+              .color(function () { return hue / 360; }, 0.8, 0.7)
+              .contrast(1.4)
+              .out();
+        }
+    },
+    {
+        id: 'flame',
+        name: '火焰',
+        nameEn: 'Flame',
+        category: 'Element',
+        description: 'Audio-reactive flames',
+        emotion: 'tender',
+        gpuReq: 'medium',
+        energyRange: [0.2, 1],
+        bpmRange: [80, 180],
+        performanceLevel: 2,
+        render: function (hue, low, mid, high, energy) {
+            s.noise(4, 0.2)
+              .rotate(function () { return time * 0.05; })
+              .modulate(s.noise(3, function () { return 0.1 + energy * 0.3; }), 0.2)
+              .color(function () { return (hue - 20) / 360; }, 0.9, 0.7)
+              .brightness(function () { return energy * 0.4; })
+              .out();
+        }
+    },
+
+    /* ===================== FOCUSED ===================== */
+    {
+        id: 'cosmic',
+        name: '宇宙',
+        nameEn: 'Cosmic',
+        category: 'Cosmos',
+        description: 'Infinite starfield particles',
+        emotion: 'focused',
+        gpuReq: 'low',
+        energyRange: [0, 0.7],
+        bpmRange: [60, 140],
+        performanceLevel: 1,
+        render: function (hue, low, mid, high, energy) {
+            s.noise(100, 0.1)
+              .thresh(function () { return 0.5 + low * 0.5; })
+              .scale(1, 1, 2)
+              .color(function () { return hue / 360; }, 0.4, 1)
+              .add(s.noise(80, 0.2).thresh(0.7).color(function () { return (hue + 60) / 360; }, 0.7, 1), 0.5)
+              .out();
+        }
+    },
+    {
+        id: 'neural',
+        name: '神经',
+        nameEn: 'Neural',
+        category: 'Digital',
+        description: 'Dynamic neural network',
+        emotion: 'focused',
+        gpuReq: 'high',
+        energyRange: [0.3, 1],
+        bpmRange: [90, 160],
+        performanceLevel: 3,
+        render: function (hue, low, mid, high, energy) {
+            s.shape(4, 0.02, 0)
+              .repeat(20, 20)
+              .modulate(s.noise(2, 0.3), function () { return mid * 0.3; })
+              .color(function () { return hue / 360; }, 0.7, 0.5)
+              .blend(s.shape(3, 0.01).repeat(15, 15).color(function () { return (hue + 40) / 360; }, 0.6, 0.4), 0.4)
+              .out();
+        }
+    },
+    {
+        id: 'crystal',
+        name: '水晶',
+        nameEn: 'Crystal',
+        category: 'Geometric',
+        description: 'Refracting crystal geometry',
+        emotion: 'focused',
+        gpuReq: 'medium',
+        energyRange: [0.2, 0.8],
+        bpmRange: [70, 150],
+        performanceLevel: 2,
+        render: function (hue, low, mid, high, energy) {
+            s.shape(6, function () { return 0.1 + mid * 0.15; }, 0)
+              .rotate(function () { return time * 0.08; })
+              .scale(function () { return 0.8 + mid * 0.4; })
+              .color(function () { return hue / 360; }, 0.7, 0.8)
+              .modulate(s.osc(20, 0.1), 0.02)
+              .out();
+        }
+    },
+    {
+        id: 'matrix',
+        name: '矩阵',
+        nameEn: 'Matrix',
+        category: 'Digital',
+        description: 'Digital rain cascade',
+        emotion: 'focused',
+        gpuReq: 'low',
+        energyRange: [0.1, 0.9],
+        bpmRange: [80, 180],
+        performanceLevel: 1,
+        render: function (hue, low, mid, high, energy) {
+            s.noise(200, 0.05)
+              .thresh(0.8)
+              .color(function () { return hue / 360; }, 0.9, 0.6)
+              .add(s.noise(150, 0.1).thresh(0.8).color(function () { return (hue + 30) / 360; }, 0.6, 0.8), 0.4)
               .out();
         }
     }
 ];
 
+/* Build themes registry for backward compat */
 window.themes = window.visualStyles.map(function (st) {
     return {
-        id: st.id,
-        name: st.name,
-        color: 'hsl(' + Math.random() * 360 + ', 80%, 60%)'
+        id:    st.id,
+        name:  st.name,
+        nameEn: st.nameEn,
+        emotion: st.emotion
     };
 });
+
+/* Emotion label map */
+window.EMOTION_LABELS = {
+    serene:    'Serene',
+    energized: 'Energized',
+    tender:    'Tender',
+    focused:   'Focused'
+};
