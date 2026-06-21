@@ -18,6 +18,7 @@ window.state = {
     strudelPlaying: false,
     strudelRepl: null,
     strudelReady: null,
+    strudelConnected: false,  // v6.0.3: 标记 Strudel 输出是否已连接到 destination
     devicePerformance: (window.webglSupport && window.webglSupport.level) || 2
 };
 
