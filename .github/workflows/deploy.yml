@@ -1,18 +1,8 @@
-name: Deploy to GitHub Pages
-
-on:
-  push:
-    branches: [main]
-  workflow_dispatch:
-
-permissions:
-  contents: read
-  pages: write
-  id-token: write
-
 jobs:
   deploy:
-    environment: github-pages
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -20,30 +10,37 @@ jobs:
 
       - name: Prepare artifact
         run: |
-          # 创建一个干净目录来存放要部署的文件
-          mkdir publish
-          cp index.html publish/
-          cp .nojekyll publish/ 2>/dev/null || true
-          # 复制所有根目录下的 .js 文件（不含子目录）
-          find . -maxdepth 1 -name "*.js" -exec cp {} publish/ \;
-          # 复制 js/ 目录，但排除 node_modules 和符号链接
-          if [ -d js ]; then
-            cp -rL js publish/   # -L 解引用符号链接，转为实体文件
-          fi
-          # 可选：添加 .md 文件（通常不需要）
-          # find . -maxdepth 1 -name "*.md" -exec cp {} publish/ \;
 
-          # 检查大小
-          echo "Artifact size:"
+          mkdir publish
+          # Use --no-preserve=links to ensure no hard links are preserved
+          cp --no-preserve=links index.html publish/
+          touch publish/.nojekyll
+
+          [ -f hydra-synth.min.js ] && cp --no-preserve=links hydra-synth.min.js publish/
+          [ -f strudel.js ] && cp --no-preserve=links strudel.js publish/
+
+          if [ -d js ]; then
+            # -L ensures symlinks are followed and copied as regular files
+            cp -rL --no-preserve=links js publish/
+          fi
+
+
+
+          # Final safety check: remove any symlinks that might have been copied
+          find publish -type l -delete
+
+          echo "Artifact content size:"
           du -sh publish
+          echo "Artifact file list:"
+          ls -R publish
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-pages-artifact@v3
         with:
-          name: github-pages
+
           path: publish/
-          retention-days: 1
+
 
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v5
+        uses: actions/deploy-pages@v4
