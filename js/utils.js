@@ -18,13 +18,8 @@
     }
 
     function hideLoading() {
-        var loader = document.getElementById('loading-indicator');
-        if (loader) {
-            loader.style.opacity = '0';
-            setTimeout(function () {
-                loader.style.display = 'none';
-            }, 500);
-        }
+        var loader = document.getElementById('loader');
+        if (loader) loader.classList.add('hidden');
     }
 
     function fmt(s) {

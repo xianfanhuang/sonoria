@@ -180,7 +180,8 @@
                     window.state.src.connect(window.state.analyser);
                     window.state.mic = true;
                     self.updateMeta('Air Resonance', 'Listening...');
-                    window.ui.mic.classList.add('active');
+                    var micBtn = window.ui.mic || document.getElementById('mic-btn');
+                    if (micBtn) micBtn.classList.add('mic-active');
                     self.startUI();
                 })
                 .catch(function () {
@@ -241,45 +242,47 @@
         }
         if (window.state.mic) {
             window.state.mic = false;
-            window.ui.mic.classList.remove('active');
+            var micBtn = window.ui.mic || document.getElementById('mic-btn');
+            if (micBtn) micBtn.classList.remove('mic-active');
         }
         if (clear) { this.stopUI(); this.viz.stop(); }
     };
     AudioEngine.prototype._bindEvents = function (el) {
-        var self = this;
         el.ontimeupdate = function () {
             if (!window.state.playing || window.state.strudelPlaying) return;
             var pct = el.currentTime / el.duration || 0;
-            window.ui.pFill.style.width = (pct * 100) + '%';
-            window.ui.cTime.innerText = window.SonoriaUtils.fmt(el.currentTime);
-            window.ui.ringProgress.style.strokeDashoffset = 100 - (pct * 100);
+            if (window.ui.pFill)        window.ui.pFill.style.width = (pct * 100) + '%';
+            if (window.ui.cTime)        window.ui.cTime.innerText = window.SonoriaUtils.fmt(el.currentTime);
+            if (window.ui.ringProgress) window.ui.ringProgress.style.strokeDashoffset = 100 - (pct * 100);
         };
         el.onloadedmetadata = function () {
-            window.ui.tTime.innerText = window.SonoriaUtils.fmt(el.duration);
+            if (window.ui.tTime) window.ui.tTime.innerText = window.SonoriaUtils.fmt(el.duration);
         };
     };
     AudioEngine.prototype.renderPlaylist = function () {
+        var plView = window.ui.plView || document.getElementById('playlist-view');
+        if (!plView) return;
         if (window.state.playlist.length === 0) {
-            window.ui.plView.innerHTML =
-                '<div style="text-align:center; color:var(--text-sub); padding:10px;">列表为空</div>';
+            plView.innerHTML = '<div class="pl-empty">No tracks yet — add music below</div>';
             return;
         }
-        window.ui.plView.innerHTML = window.state.playlist.map(function (t, i) {
-            return '<div class="pl-item ' +
-                (i === window.state.trackIdx ? 'active' : '') +
-                '" onclick="engine.playTrack(' + i + ')">' +
-                '<i class="material-icons-round" style="font-size:16px;">' +
-                (i === window.state.trackIdx ? 'equalizer' : 'music_note') +
+        plView.innerHTML = window.state.playlist.map(function (t, i) {
+            var isActive = i === window.state.trackIdx;
+            return '<div class="pl-item ' + (isActive ? 'active' : '') +
+                '" role="option" aria-selected="' + isActive + '"' +
+                ' tabindex="0" onclick="engine.playTrack(' + i + ')"' +
+                ' onkeypress="if(event.key===\'Enter\')engine.playTrack(' + i + ')">' +
+                '<i class="material-icons-round pl-icon">' +
+                (isActive ? 'equalizer' : 'music_note') +
                 '</i>' +
-                '<span style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">' +
-                t.name + '</span>' +
+                '<span class="pl-name">' + t.name + '</span>' +
                 '</div>';
         }).join('');
     };
     AudioEngine.prototype.updateMeta = function (t, a) {
-        window.ui.title.innerText = t;
-        window.ui.cText.innerText = t;
-        window.ui.artist.innerText = a;
+        if (window.ui.title)  window.ui.title.innerText  = t;
+        if (window.ui.cText)  window.ui.cText.innerText  = t;
+        if (window.ui.artist) window.ui.artist.innerText = a;
     };
     AudioEngine.prototype.startUI = function () {
         window.state.playing = true;
