@@ -1,0 +1,1358 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sonoria AI Pro · Emotional Space Host</title>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --amber-100: #fef3c7;
+            --amber-200: #fde68a;
+            --amber-300: #fcd34d;
+            --amber-400: #fbbf24;
+            --amber-500: #f59e0b;
+            --amber-600: #d97706;
+            --amber-700: #b45309;
+            --deep-900: #0a0a0f;
+            --deep-800: #12121a;
+            --deep-700: #1a1a25;
+            --deep-600: #252535;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+            background: var(--deep-900);
+            color: #fff;
+            min-height: 100vh;
+            overflow: hidden;
+            position: relative;
+            transition: background 3s ease;
+        }
+
+        /* Scene Background Gradients */
+        body.scene-meditation {
+            background: linear-gradient(180deg, #0f0a05 0%, #1a1208 30%, #1f150a 60%, #0a0a0f 100%);
+        }
+
+        body.scene-focus {
+            background: linear-gradient(180deg, #050a15 0%, #0a1525 30%, #0d1a2e 60%, #0a0a0f 100%);
+        }
+
+        body.scene-sleep {
+            background: linear-gradient(180deg, #0a0515 0%, #150a25 30%, #1a0d2e 60%, #0a0a0f 100%);
+        }
+
+        /* Ambient Glow */
+        .ambient-glow {
+            position: fixed;
+            width: 600px;
+            height: 600px;
+            border-radius: 50%;
+            filter: blur(120px);
+            opacity: 0.15;
+            pointer-events: none;
+            transition: all 3s ease;
+            z-index: 0;
+        }
+
+        .glow-1 {
+            top: -200px;
+            left: -100px;
+            background: var(--amber-500);
+        }
+
+        .glow-2 {
+            bottom: -200px;
+            right: -100px;
+            background: #7c3aed;
+        }
+
+        body.scene-focus .glow-1 {
+            background: #3b82f6;
+        }
+
+        body.scene-focus .glow-2 {
+            background: #06b6d4;
+        }
+
+        body.scene-sleep .glow-1 {
+            background: #8b5cf6;
+        }
+
+        body.scene-sleep .glow-2 {
+            background: #ec4899;
+        }
+
+        /* Main Container */
+        .app-container {
+            position: relative;
+            z-index: 10;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            padding: 40px 20px;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            opacity: 0;
+            transform: translateY(-20px);
+            animation: fadeInDown 1.5s ease forwards;
+            animation-delay: 0.5s;
+        }
+
+        .time-display {
+            font-size: 48px;
+            font-weight: 200;
+            letter-spacing: 4px;
+            color: rgba(255, 255, 255, 0.4);
+            margin-bottom: 8px;
+            font-variant-numeric: tabular-nums;
+            transition: color 2s ease;
+        }
+
+        body.scene-meditation .time-display {
+            color: rgba(245, 158, 11, 0.3);
+        }
+
+        body.scene-focus .time-display {
+            color: rgba(59, 130, 246, 0.3);
+        }
+
+        body.scene-sleep .time-display {
+            color: rgba(139, 92, 246, 0.3);
+        }
+
+        .brand {
+            font-size: 12px;
+            font-weight: 300;
+            letter-spacing: 6px;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.5);
+            margin-bottom: 4px;
+        }
+
+        .brand-subtitle {
+            font-size: 11px;
+            font-weight: 300;
+            letter-spacing: 2px;
+            color: rgba(255, 255, 255, 0.25);
+        }
+
+        /* Session Timer */
+        .session-time {
+            font-size: 11px;
+            letter-spacing: 2px;
+            color: rgba(255, 255, 255, 0.2);
+            margin-top: 8px;
+            font-variant-numeric: tabular-nums;
+            opacity: 0;
+            transition: opacity 1s ease;
+        }
+
+        .session-time.active {
+            opacity: 1;
+        }
+
+        /* Visualizer Section */
+        .visualizer-section {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            max-width: 600px;
+            position: relative;
+        }
+
+        #visualizer-canvas {
+            width: 100%;
+            height: 300px;
+            opacity: 0;
+            animation: fadeIn 2s ease forwards;
+            animation-delay: 1s;
+        }
+
+        /* AI Host Text */
+        .host-message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            width: 80%;
+            opacity: 0;
+            transition: opacity 1s ease;
+            pointer-events: none;
+        }
+
+        .host-message.active {
+            opacity: 1;
+        }
+
+        .host-message p {
+            font-size: 18px;
+            font-weight: 300;
+            line-height: 1.8;
+            color: rgba(255, 255, 255, 0.9);
+            letter-spacing: 1px;
+        }
+
+        .host-message .source {
+            margin-top: 16px;
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.4);
+            letter-spacing: 2px;
+        }
+
+        /* Center Controls */
+        .center-controls {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 30px;
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeInUp 1.5s ease forwards;
+            animation-delay: 0.8s;
+        }
+
+        /* Play Button */
+        .play-button {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #fff;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.5s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .play-button:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: scale(1.05);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .play-button.playing {
+            background: rgba(245, 158, 11, 0.1);
+            border-color: rgba(245, 158, 11, 0.3);
+            box-shadow: 0 0 40px rgba(245, 158, 11, 0.15);
+        }
+
+        body.scene-focus .play-button.playing {
+            background: rgba(59, 130, 246, 0.1);
+            border-color: rgba(59, 130, 246, 0.3);
+            box-shadow: 0 0 40px rgba(59, 130, 246, 0.15);
+        }
+
+        body.scene-sleep .play-button.playing {
+            background: rgba(139, 92, 246, 0.1);
+            border-color: rgba(139, 92, 246, 0.3);
+            box-shadow: 0 0 40px rgba(139, 92, 246, 0.15);
+        }
+
+        .play-button .material-icons-round {
+            font-size: 32px;
+        }
+
+        /* Current Status */
+        .current-status {
+            text-align: center;
+        }
+
+        .status-label {
+            font-size: 11px;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.3);
+            margin-bottom: 6px;
+        }
+
+        .status-text {
+            font-size: 16px;
+            font-weight: 300;
+            color: rgba(255, 255, 255, 0.7);
+            letter-spacing: 1px;
+        }
+
+        /* Scene Selector */
+        .scene-selector {
+            display: flex;
+            gap: 8px;
+            padding: 6px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 50px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .scene-btn {
+            padding: 10px 20px;
+            border: none;
+            background: transparent;
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 13px;
+            font-weight: 300;
+            letter-spacing: 1px;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.5s ease;
+        }
+
+        .scene-btn:hover {
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .scene-btn.active {
+            background: rgba(255, 255, 255, 0.08);
+            color: #fff;
+        }
+
+        body.scene-meditation .scene-btn.active[data-scene="meditation"] {
+            background: rgba(245, 158, 11, 0.15);
+            color: var(--amber-300);
+        }
+
+        body.scene-focus .scene-btn.active[data-scene="focus"] {
+            background: rgba(59, 130, 246, 0.15);
+            color: #60a5fa;
+        }
+
+        body.scene-sleep .scene-btn.active[data-scene="sleep"] {
+            background: rgba(139, 92, 246, 0.15);
+            color: #a78bfa;
+        }
+
+        /* Bottom Toolbar */
+        .toolbar {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            opacity: 0;
+            animation: fadeIn 1.5s ease forwards;
+            animation-delay: 1.2s;
+        }
+
+        .tool-btn {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: transparent;
+            border: none;
+            color: rgba(255, 255, 255, 0.4);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        .tool-btn:hover {
+            color: rgba(255, 255, 255, 0.8);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .tool-btn.active {
+            color: var(--amber-400);
+        }
+
+        body.scene-focus .tool-btn.active {
+            color: #60a5fa;
+        }
+
+        body.scene-sleep .tool-btn.active {
+            color: #a78bfa;
+        }
+
+        .tool-btn .material-icons-round {
+            font-size: 22px;
+        }
+
+        /* Volume Slider */
+        .volume-control {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .volume-slider {
+            width: 80px;
+            height: 2px;
+            -webkit-appearance: none;
+            appearance: none;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
+            outline: none;
+        }
+
+        .volume-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.5);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .volume-slider::-webkit-slider-thumb:hover {
+            background: var(--amber-400);
+            transform: scale(1.2);
+        }
+
+        /* Welcome Screen */
+        .welcome-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--deep-900);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            transition: opacity 1.5s ease, visibility 1.5s ease;
+        }
+
+        .welcome-screen.hidden {
+            opacity: 0;
+            visibility: hidden;
+        }
+
+        .welcome-brand {
+            font-size: 32px;
+            font-weight: 200;
+            letter-spacing: 12px;
+            margin-bottom: 16px;
+            opacity: 0;
+            animation: fadeIn 2s ease forwards;
+        }
+
+        .welcome-tagline {
+            font-size: 14px;
+            font-weight: 300;
+            letter-spacing: 3px;
+            color: rgba(255, 255, 255, 0.4);
+            opacity: 0;
+            animation: fadeIn 2s ease forwards;
+            animation-delay: 0.5s;
+        }
+
+        .enter-btn {
+            margin-top: 60px;
+            padding: 16px 48px;
+            background: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 14px;
+            font-weight: 300;
+            letter-spacing: 4px;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.5s ease;
+            opacity: 0;
+            animation: fadeIn 2s ease forwards;
+            animation-delay: 1s;
+        }
+
+        .enter-btn:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(255, 255, 255, 0.4);
+            color: #fff;
+            transform: scale(1.02);
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 1; }
+        }
+
+        /* Responsive */
+        @media (max-width: 480px) {
+            .app-container {
+                padding: 30px 16px;
+            }
+
+            .brand {
+                font-size: 12px;
+                letter-spacing: 6px;
+            }
+
+            #visualizer-canvas {
+                height: 250px;
+            }
+
+            .host-message p {
+                font-size: 16px;
+            }
+
+            .play-button {
+                width: 70px;
+                height: 70px;
+            }
+
+            .scene-btn {
+                padding: 8px 16px;
+                font-size: 12px;
+            }
+
+            .volume-slider {
+                width: 60px;
+            }
+        }
+    </style>
+</head>
+<body class="scene-meditation">
+    <!-- Ambient Glows -->
+    <div class="ambient-glow glow-1"></div>
+    <div class="ambient-glow glow-2"></div>
+
+    <!-- Welcome Screen -->
+    <div class="welcome-screen" id="welcomeScreen">
+        <div class="welcome-brand">SONORIA</div>
+        <div class="welcome-tagline">Emotional Space Host</div>
+        <button class="enter-btn" onclick="enterSpace()">Enter Space</button>
+    </div>
+
+    <!-- Main App -->
+    <div class="app-container">
+        <!-- Header -->
+        <header class="header">
+            <div class="time-display" id="timeDisplay">00:00</div>
+            <div class="brand">Sonoria</div>
+            <div class="brand-subtitle">AI Pro · Emotional Space Host</div>
+            <div class="session-time" id="sessionTime">Session 00:00</div>
+        </header>
+
+        <!-- Visualizer Section -->
+        <section class="visualizer-section">
+            <canvas id="visualizer-canvas"></canvas>
+            <div class="host-message" id="hostMessage">
+                <p id="hostText"></p>
+                <div class="source">— Sonoria</div>
+            </div>
+        </section>
+
+        <!-- Center Controls -->
+        <section class="center-controls">
+            <div class="current-status">
+                <div class="status-label">Current Space</div>
+                <div class="status-text" id="currentScene">Meditation · Amber Time</div>
+            </div>
+
+            <button class="play-button" id="playButton" onclick="togglePlay()">
+                <span class="material-icons-round" id="playIcon">play_arrow</span>
+            </button>
+
+            <div class="scene-selector">
+                <button class="scene-btn active" data-scene="meditation" onclick="switchScene('meditation')">Meditation</button>
+                <button class="scene-btn" data-scene="focus" onclick="switchScene('focus')">Focus</button>
+                <button class="scene-btn" data-scene="sleep" onclick="switchScene('sleep')">Sleep</button>
+            </div>
+        </section>
+
+        <!-- Bottom Toolbar -->
+        <footer class="toolbar">
+            <button class="tool-btn active" id="hostToggle" onclick="toggleHost()" title="AI Host">
+                <span class="material-icons-round">record_voice_over</span>
+            </button>
+
+            <div class="volume-control">
+                <button class="tool-btn" onclick="toggleMute()" title="Volume">
+                    <span class="material-icons-round" id="volumeIcon">volume_up</span>
+                </button>
+                <input type="range" class="volume-slider" id="volumeSlider" min="0" max="100" value="60" oninput="changeVolume(this.value)">
+            </div>
+
+            <button class="tool-btn" onclick="toggleInfo()" title="About">
+                <span class="material-icons-round">info_outline</span>
+            </button>
+        </footer>
+    </div>
+
+    <script>
+        // ========== Global State ==========
+        const state = {
+            isPlaying: false,
+            isHostEnabled: true,
+            currentScene: 'meditation',
+            volume: 0.6,
+            isMuted: false,
+            audioContext: null,
+            analyser: null,
+            dataArray: null,
+            particles: [],
+            animationId: null,
+            sessionStartTime: null,
+            sessionDuration: 0,
+            ringPhase: 0
+        };
+
+        // ========== Scene Configurations ==========
+        const scenes = {
+            meditation: {
+                name: 'Meditation · Amber Time',
+                description: 'Let time slow down and find inner peace within the amber glow',
+                hostMessages: [
+                    'Welcome to Amber Time. Here, time moves a little slower.',
+                    'Breathe deeply. Let the music wrap around you like warm light.',
+                    'In this moment, you only need to be. You need do nothing.',
+                    'Like an insect in amber, let your thoughts rest in stillness.',
+                    'The golden hour light is always gentle, just like you are now.',
+                    'Feel the rhythm of your breath. Inhale. Exhale.',
+                    'All anxiety is slowly melting, like ice under sunlight.',
+                    'Your mind is a calm lake, without a single ripple.',
+                    'You are safe here. You are held.',
+                    'Let the past and future drift away. Just remain in the present.'
+                ],
+                colors: ['#f59e0b', '#fbbf24', '#fcd34d', '#d97706', '#fef3c7'],
+                particleSpeed: 0.3,
+                particleCount: 60,
+                ringSpeed: 0.002,
+                ringCount: 3
+            },
+            focus: {
+                name: 'Focus · Deep Blue',
+                description: 'In the deep blue space, let thoughts flow with crystal clarity',
+                hostMessages: [
+                    'Entering deep focus space. Your mind will become crystal clear.',
+                    'Like a deep-sea diver, focus only on what is before you.',
+                    'Distractions will slowly fade, leaving only you and your creation.',
+                    'Blue is the color of focus, and the beginning of infinite possibility.',
+                    'Keep the rhythm. Let inspiration emerge naturally.',
+                    'Your attention is as focused as a laser beam.',
+                    'Every thought is clear as water, every action precise and powerful.',
+                    'Time disappears in focus. You have entered the flow state.',
+                    'Nothing can disturb you. You are in your own world.',
+                    'The joy of creation is right here, right now.'
+                ],
+                colors: ['#3b82f6', '#60a5fa', '#06b6d4', '#0ea5e9', '#7dd3fc'],
+                particleSpeed: 0.5,
+                particleCount: 50,
+                ringSpeed: 0.004,
+                ringCount: 4
+            },
+            sleep: {
+                name: 'Sleep · Dream Purple',
+                description: 'In the purple dreamscape, gently drift into deep sleep',
+                hostMessages: [
+                    'Welcome to the Dream Purple realm. It is time for your body to rest.',
+                    'Close your eyes. Let your thoughts dim like stars fading into dawn.',
+                    'With every breath, you sink deeper into relaxation.',
+                    'The gate of dreams is already open. Walk through with ease.',
+                    'Tonight, you will sleep deeply and beautifully.',
+                    'Your body grows heavier and heavier, sinking into comfort.',
+                    'All fatigue is leaving your body.',
+                    'Like a feather, gently float into the realm of dreams.',
+                    'When you wake tomorrow, you will feel renewed.',
+                    'Sleep now, dear one. Sleep.'
+                ],
+                colors: ['#8b5cf6', '#a78bfa', '#c084fc', '#7c3aed', '#ddd6fe'],
+                particleSpeed: 0.12,
+                particleCount: 45,
+                ringSpeed: 0.001,
+                ringCount: 2
+            }
+        };
+
+        // ========== Initialization ==========
+        function enterSpace() {
+            document.getElementById('welcomeScreen').classList.add('hidden');
+
+            // Start time display
+            updateTimeDisplay();
+            setInterval(updateTimeDisplay, 1000);
+
+            setTimeout(() => {
+                initAudio();
+                initCanvas();
+                initParticles();
+                animate();
+
+                // Delayed welcome message
+                setTimeout(() => {
+                    if (state.isHostEnabled) {
+                        speak(scenes[state.currentScene].hostMessages[0]);
+                    }
+                }, 2000);
+            }, 1500);
+        }
+
+        // ========== Time Display ==========
+        function updateTimeDisplay() {
+            const now = new Date();
+            const hours = now.getHours().toString().padStart(2, '0');
+            const minutes = now.getMinutes().toString().padStart(2, '0');
+            document.getElementById('timeDisplay').textContent = `${hours}:${minutes}`;
+
+            // Update session duration
+            if (state.isPlaying && state.sessionStartTime) {
+                const elapsed = Math.floor((Date.now() - state.sessionStartTime) / 1000);
+                const mins = Math.floor(elapsed / 60).toString().padStart(2, '0');
+                const secs = (elapsed % 60).toString().padStart(2, '0');
+                document.getElementById('sessionTime').textContent = `Session ${mins}:${secs}`;
+            }
+        }
+
+        // ========== Audio System ==========
+        function initAudio() {
+            try {
+                state.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                state.analyser = state.audioContext.createAnalyser();
+                state.analyser.fftSize = 256;
+                state.dataArray = new Uint8Array(state.analyser.frequencyBinCount);
+
+                // Create ambient sound
+                createAmbientSound();
+            } catch (e) {
+                console.log('Audio initialization failed, using visualizer simulation mode');
+            }
+        }
+
+        function createAmbientSound() {
+            const ctx = state.audioContext;
+
+            // Master gain node
+            const masterGain = ctx.createGain();
+            masterGain.gain.value = 0;
+            masterGain.connect(state.analyser);
+            state.analyser.connect(ctx.destination);
+
+            state.masterGain = masterGain;
+            state.oscillators = [];
+            state.lfoNodes = [];
+
+            // Create layered chord oscillators (ambient music foundation)
+            const baseFreq = 110; // A2 bass
+
+            // Chord frequency ratios (perfect fifth, major third, etc.)
+            const chordRatios = [1, 1.5, 2, 2.5, 3, 4];
+
+            chordRatios.forEach((ratio, index) => {
+                const osc = ctx.createOscillator();
+                const oscGain = ctx.createGain();
+
+                osc.type = index < 2 ? 'sine' : 'triangle';
+                osc.frequency.value = baseFreq * ratio;
+
+                // Decreasing volume per layer
+                oscGain.gain.value = 0.3 / (index + 1);
+
+                // Add slight frequency modulation (LFO) for chorus effect
+                const lfo = ctx.createOscillator();
+                const lfoGain = ctx.createGain();
+
+                lfo.frequency.value = 0.1 + index * 0.05; // Ultra-slow modulation
+                lfoGain.gain.value = baseFreq * ratio * 0.002; // Tiny frequency variation
+
+                lfo.connect(lfoGain);
+                lfoGain.connect(osc.frequency);
+                lfo.start();
+
+                osc.connect(oscGain);
+                oscGain.connect(masterGain);
+                osc.start();
+
+                state.oscillators.push(osc);
+                state.lfoNodes.push(lfo);
+            });
+
+            // Add pink noise (simulate natural environment sounds)
+            const noiseBuffer = createPinkNoise(ctx, 2);
+            const noiseSource = ctx.createBufferSource();
+            const noiseGain = ctx.createGain();
+            const noiseFilter = ctx.createBiquadFilter();
+
+            noiseSource.buffer = noiseBuffer;
+            noiseSource.loop = true;
+
+            noiseFilter.type = 'lowpass';
+            noiseFilter.frequency.value = 400;
+            noiseFilter.Q.value = 0.5;
+
+            noiseGain.gain.value = 0.02;
+
+            noiseSource.connect(noiseFilter);
+            noiseFilter.connect(noiseGain);
+            noiseGain.connect(masterGain);
+            noiseSource.start();
+
+            state.noiseSource = noiseSource;
+            state.noiseGain = noiseGain;
+
+            // Slow breathing volume effect
+            const breathLfo = ctx.createOscillator();
+            const breathGain = ctx.createGain();
+
+            breathLfo.frequency.value = 0.08; // About 12 seconds per breath cycle
+            breathGain.gain.value = 0.1; // Breathing amplitude
+
+            breathLfo.connect(breathGain);
+            breathGain.connect(masterGain.gain);
+            breathLfo.start();
+
+            state.breathLfo = breathLfo;
+        }
+
+        // Generate pink noise (more natural ambient sound)
+        function createPinkNoise(ctx, duration) {
+            const bufferSize = ctx.sampleRate * duration;
+            const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+            const data = buffer.getChannelData(0);
+
+            let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
+
+            for (let i = 0; i < bufferSize; i++) {
+                const white = Math.random() * 2 - 1;
+                b0 = 0.99886 * b0 + white * 0.0555179;
+                b1 = 0.99332 * b1 + white * 0.0750759;
+                b2 = 0.96900 * b2 + white * 0.1538520;
+                b3 = 0.86650 * b3 + white * 0.3104856;
+                b4 = 0.55000 * b4 + white * 0.5329522;
+                b5 = -0.7616 * b5 - white * 0.0168980;
+                data[i] = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362) * 0.11;
+                b6 = white * 0.115926;
+            }
+
+            return buffer;
+        }
+
+        function togglePlay() {
+            state.isPlaying = !state.isPlaying;
+
+            const playBtn = document.getElementById('playButton');
+            const playIcon = document.getElementById('playIcon');
+            const sessionTime = document.getElementById('sessionTime');
+
+            if (state.isPlaying) {
+                playBtn.classList.add('playing');
+                playIcon.textContent = 'pause';
+                sessionTime.classList.add('active');
+                state.sessionStartTime = Date.now() - state.sessionDuration * 1000;
+
+                if (state.audioContext && state.masterGain) {
+                    state.audioContext.resume();
+                    const targetVolume = state.isMuted ? 0 : state.volume * 0.5;
+                    state.masterGain.gain.cancelScheduledValues(state.audioContext.currentTime);
+                    state.masterGain.gain.linearRampToValueAtTime(
+                        targetVolume,
+                        state.audioContext.currentTime + 4
+                    );
+                }
+
+                // Random host message
+                if (state.isHostEnabled && Math.random() > 0.4) {
+                    setTimeout(() => {
+                        const messages = scenes[state.currentScene].hostMessages;
+                        const msg = messages[Math.floor(Math.random() * messages.length)];
+                        speak(msg);
+                    }, 5000);
+                }
+            } else {
+                playBtn.classList.remove('playing');
+                playIcon.textContent = 'play_arrow';
+                sessionTime.classList.remove('active');
+
+                // Save session duration
+                if (state.sessionStartTime) {
+                    state.sessionDuration = Math.floor((Date.now() - state.sessionStartTime) / 1000);
+                }
+
+                if (state.masterGain) {
+                    state.masterGain.gain.cancelScheduledValues(state.audioContext.currentTime);
+                    state.masterGain.gain.linearRampToValueAtTime(
+                        0,
+                        state.audioContext.currentTime + 3
+                    );
+                }
+            }
+        }
+
+        // ========== AI Host System ==========
+        function speak(text) {
+            if (!state.isHostEnabled) return;
+
+            if ('speechSynthesis' in window) {
+                // Stop current speech
+                window.speechSynthesis.cancel();
+
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'en-US';
+                utterance.rate = 0.85; // Slightly slower
+                utterance.pitch = 0.95; // Slightly lower
+                utterance.volume = state.volume * 0.8;
+
+                // Display text
+                showHostMessage(text);
+
+                utterance.onend = () => {
+                    setTimeout(() => {
+                        hideHostMessage();
+                    }, 2000);
+                };
+
+                window.speechSynthesis.speak(utterance);
+            } else {
+                // If speech not supported, display text only
+                showHostMessage(text);
+                setTimeout(() => {
+                    hideHostMessage();
+                }, 5000);
+            }
+        }
+
+        function showHostMessage(text) {
+            const msgEl = document.getElementById('hostMessage');
+            const textEl = document.getElementById('hostText');
+            textEl.textContent = text;
+            msgEl.classList.add('active');
+        }
+
+        function hideHostMessage() {
+            document.getElementById('hostMessage').classList.remove('active');
+        }
+
+        function toggleHost() {
+            state.isHostEnabled = !state.isHostEnabled;
+            const btn = document.getElementById('hostToggle');
+            btn.classList.toggle('active', state.isHostEnabled);
+
+            if (!state.isHostEnabled) {
+                window.speechSynthesis?.cancel();
+                hideHostMessage();
+            }
+        }
+
+        // ========== Scene Switching ==========
+        function switchScene(scene) {
+            if (state.currentScene === scene) return;
+
+            state.currentScene = scene;
+
+            // Update button states
+            document.querySelectorAll('.scene-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.scene === scene);
+            });
+
+            // Update body class
+            document.body.className = `scene-${scene}`;
+
+            // Update status text
+            document.getElementById('currentScene').textContent = scenes[scene].name;
+
+            // Reinitialize particles
+            initParticles();
+
+            // Adjust music parameters (different timbre per scene)
+            updateSceneSound(scene);
+
+            // Scene transition host message
+            if (state.isHostEnabled && state.isPlaying) {
+                setTimeout(() => {
+                    const messages = scenes[scene].hostMessages;
+                    const msg = messages[Math.floor(Math.random() * messages.length)];
+                    speak(msg);
+                }, 1500);
+            }
+        }
+
+        // Adjust music based on scene
+        function updateSceneSound(scene) {
+            if (!state.audioContext || !state.oscillators) return;
+
+            const ctx = state.audioContext;
+            const now = ctx.currentTime;
+
+            // Different base frequencies per scene
+            const baseFreqs = {
+                meditation: 90,   // Lower
+                focus: 130,       // Brighter
+                sleep: 65         // Deepest
+            };
+
+            const baseFreq = baseFreqs[scene];
+            const chordRatios = [1, 1.5, 2, 2.5, 3, 4];
+
+            // Smooth transition to new frequencies
+            state.oscillators.forEach((osc, index) => {
+                const targetFreq = baseFreq * chordRatios[index];
+                osc.frequency.cancelScheduledValues(now);
+                osc.frequency.linearRampToValueAtTime(targetFreq, now + 5);
+            });
+
+            // Adjust breathing speed
+            if (state.breathLfo) {
+                const breathSpeeds = {
+                    meditation: 0.06,  // Slower breath
+                    focus: 0.1,       // Normal
+                    sleep: 0.04       // Slowest
+                };
+                state.breathLfo.frequency.cancelScheduledValues(now);
+                state.breathLfo.frequency.linearRampToValueAtTime(breathSpeeds[scene], now + 3);
+            }
+        }
+
+        // ========== Visualizer System ==========
+        function initCanvas() {
+            const canvas = document.getElementById('visualizer-canvas');
+            const ctx = canvas.getContext('2d');
+
+            function resize() {
+                canvas.width = canvas.offsetWidth * window.devicePixelRatio;
+                canvas.height = canvas.offsetHeight * window.devicePixelRatio;
+                ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+            }
+
+            resize();
+            window.addEventListener('resize', resize);
+
+            state.canvas = canvas;
+            state.ctx = ctx;
+        }
+
+        function initParticles() {
+            const scene = scenes[state.currentScene];
+            state.particles = [];
+
+            const canvas = document.getElementById('visualizer-canvas');
+            const width = canvas.offsetWidth;
+            const height = canvas.offsetHeight;
+
+            for (let i = 0; i < scene.particleCount; i++) {
+                state.particles.push({
+                    x: Math.random() * width,
+                    y: Math.random() * height,
+                    size: Math.random() * 3 + 1,
+                    speedX: (Math.random() - 0.5) * scene.particleSpeed,
+                    speedY: (Math.random() - 0.5) * scene.particleSpeed,
+                    opacity: Math.random() * 0.5 + 0.2,
+                    colorIndex: Math.floor(Math.random() * scene.colors.length)
+                });
+            }
+        }
+
+        function animate() {
+            state.animationId = requestAnimationFrame(animate);
+
+            const ctx = state.ctx;
+            const canvas = state.canvas;
+            const width = canvas.offsetWidth;
+            const height = canvas.offsetHeight;
+            const scene = scenes[state.currentScene];
+
+            // Clear canvas
+            ctx.clearRect(0, 0, width, height);
+
+            // Get audio data (if available)
+            let audioData = null;
+            if (state.analyser && state.isPlaying) {
+                state.analyser.getByteFrequencyData(state.dataArray);
+                audioData = state.dataArray;
+            }
+
+            // Update ring phase
+            state.ringPhase += scene.ringSpeed;
+
+            // Draw ring waveform
+            drawRingWaveform(ctx, width, height, audioData, scene);
+
+            // Draw waveform (simulated or real)
+            drawWaveform(ctx, width, height, audioData, scene);
+
+            // Update and draw particles
+            updateAndDrawParticles(ctx, width, height, scene);
+        }
+
+        function drawRingWaveform(ctx, width, height, audioData, scene) {
+            const centerX = width / 2;
+            const centerY = height / 2;
+            const baseRadius = Math.min(width, height) * 0.25;
+            const barCount = 120;
+
+            for (let ring = 0; ring < scene.ringCount; ring++) {
+                const ringRadius = baseRadius + ring * 30;
+                const ringOpacity = 0.3 - ring * 0.08;
+
+                ctx.beginPath();
+
+                for (let i = 0; i <= barCount; i++) {
+                    const angle = (i / barCount) * Math.PI * 2 + state.ringPhase * (ring % 2 === 0 ? 1 : -1);
+
+                    let barHeight;
+                    if (audioData && state.isPlaying) {
+                        const dataIndex = Math.floor(i * audioData.length / barCount);
+                        barHeight = (audioData[dataIndex] / 255) * 40;
+                    } else {
+                        const time = Date.now() * 0.001;
+                        barHeight = Math.sin(time * 0.5 + i * 0.1 + ring) * 15 + 20;
+                        barHeight += Math.sin(time * 0.3 + i * 0.05) * 10;
+                    }
+
+                    const innerRadius = ringRadius;
+                    const outerRadius = ringRadius + barHeight * 0.5;
+
+                    const x1 = centerX + Math.cos(angle) * innerRadius;
+                    const y1 = centerY + Math.sin(angle) * innerRadius;
+                    const x2 = centerX + Math.cos(angle) * outerRadius;
+                    const y2 = centerY + Math.sin(angle) * outerRadius;
+
+                    if (i === 0) {
+                        ctx.moveTo(x1, y1);
+                    } else {
+                        ctx.lineTo(x1, y1);
+                    }
+                }
+
+                ctx.closePath();
+                ctx.strokeStyle = scene.colors[ring % scene.colors.length] + Math.floor(ringOpacity * 255).toString(16).padStart(2, '0');
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+            }
+        }
+
+        function drawWaveform(ctx, width, height, audioData, scene) {
+            const barCount = 64;
+            const barWidth = width / barCount * 0.8;
+            const gap = width / barCount * 0.2;
+
+            ctx.beginPath();
+
+            for (let i = 0; i < barCount; i++) {
+                let barHeight;
+
+                if (audioData && state.isPlaying) {
+                    const dataIndex = Math.floor(i * audioData.length / barCount);
+                    barHeight = (audioData[dataIndex] / 255) * height * 0.6;
+                } else {
+                    // Simulated waveform
+                    const time = Date.now() * 0.001;
+                    barHeight = Math.sin(time * 0.5 + i * 0.2) * 20 + 30;
+                    barHeight += Math.sin(time * 0.3 + i * 0.1) * 15;
+                }
+
+                const x = i * (barWidth + gap) + gap / 2;
+                const y = (height - barHeight) / 2;
+
+                // Gradient color
+                const gradient = ctx.createLinearGradient(x, y, x, y + barHeight);
+                gradient.addColorStop(0, scene.colors[0] + '80');
+                gradient.addColorStop(0.5, scene.colors[1] + '60');
+                gradient.addColorStop(1, scene.colors[2] + '40');
+
+                ctx.fillStyle = gradient;
+                ctx.fillRect(x, y, barWidth, barHeight);
+
+                // Mirror
+                ctx.fillRect(x, height - y - barHeight, barWidth, barHeight);
+            }
+        }
+
+        function updateAndDrawParticles(ctx, width, height, scene) {
+            const time = Date.now() * 0.001;
+            const breathScale = 1 + Math.sin(time * 0.5) * 0.2; // Breathing effect
+
+            state.particles.forEach((particle, index) => {
+                // Update position
+                particle.x += particle.speedX;
+                particle.y += particle.speedY;
+
+                // Add slight drift
+                particle.x += Math.sin(time + particle.y * 0.01) * 0.1;
+                particle.y += Math.cos(time + particle.x * 0.01) * 0.1;
+
+                // Boundary check
+                if (particle.x < -10) particle.x = width + 10;
+                if (particle.x > width + 10) particle.x = -10;
+                if (particle.y < -10) particle.y = height + 10;
+                if (particle.y > height + 10) particle.y = -10;
+
+                // Draw particle (with breathing effect)
+                const size = particle.size * breathScale;
+                const opacity = particle.opacity * (0.8 + Math.sin(time * 0.8 + index) * 0.2);
+
+                // Glow effect
+                const gradient = ctx.createRadialGradient(
+                    particle.x, particle.y, 0,
+                    particle.x, particle.y, size * 3
+                );
+                gradient.addColorStop(0, scene.colors[particle.colorIndex] + Math.floor(opacity * 255).toString(16).padStart(2, '0'));
+                gradient.addColorStop(1, scene.colors[particle.colorIndex] + '00');
+
+                ctx.beginPath();
+                ctx.arc(particle.x, particle.y, size * 3, 0, Math.PI * 2);
+                ctx.fillStyle = gradient;
+                ctx.fill();
+
+                // Core
+                ctx.beginPath();
+                ctx.arc(particle.x, particle.y, size, 0, Math.PI * 2);
+                ctx.fillStyle = scene.colors[particle.colorIndex] + Math.floor((opacity + 0.3) * 255).toString(16).padStart(2, '0');
+                ctx.fill();
+
+                // Draw connections (nearby particles)
+                state.particles.slice(index + 1).forEach(other => {
+                    const dx = particle.x - other.x;
+                    const dy = particle.y - other.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+
+                    if (distance < 100) {
+                        ctx.beginPath();
+                        ctx.moveTo(particle.x, particle.y);
+                        ctx.lineTo(other.x, other.y);
+                        ctx.strokeStyle = scene.colors[0] + Math.floor((1 - distance / 100) * 20).toString(16).padStart(2, '0');
+                        ctx.lineWidth = 0.5;
+                        ctx.stroke();
+                    }
+                });
+            });
+        }
+
+        // ========== Volume Control ==========
+        function changeVolume(value) {
+            state.volume = value / 100;
+            updateVolumeIcon();
+
+            if (state.masterGain && state.isPlaying && !state.isMuted) {
+                state.masterGain.gain.cancelScheduledValues(state.audioContext.currentTime);
+                state.masterGain.gain.linearRampToValueAtTime(
+                    state.volume * 0.5,
+                    state.audioContext.currentTime + 0.5
+                );
+            }
+        }
+
+        function toggleMute() {
+            state.isMuted = !state.isMuted;
+
+            if (state.masterGain) {
+                state.masterGain.gain.cancelScheduledValues(state.audioContext.currentTime);
+
+                if (state.isMuted) {
+                    state.masterGain.gain.linearRampToValueAtTime(
+                        0,
+                        state.audioContext.currentTime + 0.5
+                    );
+                } else if (state.isPlaying) {
+                    state.masterGain.gain.linearRampToValueAtTime(
+                        state.volume * 0.5,
+                        state.audioContext.currentTime + 0.5
+                    );
+                }
+            }
+
+            updateVolumeIcon();
+        }
+
+        function updateVolumeIcon() {
+            const icon = document.getElementById('volumeIcon');
+            const slider = document.getElementById('volumeSlider');
+
+            if (state.isMuted || state.volume === 0) {
+                icon.textContent = 'volume_off';
+            } else if (state.volume < 0.5) {
+                icon.textContent = 'volume_down';
+            } else {
+                icon.textContent = 'volume_up';
+            }
+        }
+
+        // ========== About Info ==========
+        function toggleInfo() {
+            const messages = [
+                'Sonoria AI Pro is your emotional space host.',
+                'Here, music is not background—it is a space you can enter.',
+                'Choose a scene and let me accompany you through this moment.'
+            ];
+            speak(messages[Math.floor(Math.random() * messages.length)]);
+        }
+
+        // ========== Auto Host Messages ==========
+        let lastHostTime = 0;
+
+        function checkAutoHost() {
+            const now = Date.now();
+            const minInterval = 60000; // Minimum 1 minute
+            const maxInterval = 120000; // Maximum 2 minutes
+
+            if (state.isPlaying && state.isHostEnabled && now - lastHostTime > minInterval) {
+                if (Math.random() > 0.7) {
+                    const messages = scenes[state.currentScene].hostMessages;
+                    const msg = messages[Math.floor(Math.random() * messages.length)];
+                    speak(msg);
+                    lastHostTime = now;
+                }
+            }
+
+            setTimeout(checkAutoHost, 10000);
+        }
+
+        // Start auto host check
+        setTimeout(checkAutoHost, 30000);
+
+        // ========== Keyboard Shortcuts ==========
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                e.preventDefault();
+                togglePlay();
+            } else if (e.code === 'KeyM') {
+                toggleMute();
+            } else if (e.code === 'KeyH') {
+                toggleHost();
+            } else if (e.code === 'Digit1') {
+                switchScene('meditation');
+            } else if (e.code === 'Digit2') {
+                switchScene('focus');
+            } else if (e.code === 'Digit3') {
+                switchScene('sleep');
+            }
+        });
+    </script>
+</body>
+</html>
