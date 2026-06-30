@@ -63,41 +63,26 @@
     }
 
     HydraVisualizer.prototype._init = function () {
-        // Try Hydra (WebGL)
-        if (window.webglSupport && window.webglSupport.available && typeof window.Hydra === 'function') {
-            try {
-                this.hydra = new window.Hydra({
-                    canvas: this.canvas,
-                    autoLoop: true,
-                    detectAudio: false,
-                    width: window.innerWidth,
-                    height: window.innerHeight
-                });
-                this.useFallback = false;
-                console.log('[Sonoria] Hydra GPU mode active');
-            } catch (e) {
-                console.warn('[Sonoria] Hydra init failed, using Canvas 2D:', e);
-                this.useFallback = true;
-            }
-        }
+        // v8.0 — Canvas 2D is the sole, reliable renderer.
+        // Hydra/WebGL was disabled: its style code relied on global synth vars
+        // (s, a, osc…) that don't exist without makeGlobal, causing
+        // "can't find variable a" errors and black screens.
+        this.useFallback = true;
+        this.canvas2d    = this.canvas;
+        this.ctx2d       = this.canvas.getContext('2d');
+        this.canvas2d.width  = window.innerWidth;
+        this.canvas2d.height = window.innerHeight;
 
-        // Canvas 2D fallback (always initialised — used for album art too)
-        this._initCanvas2D();
         this._initAlbumCanvas();
         this._initParticles();
 
-        // If not Hydra, the main canvas IS the 2D canvas
-        if (this.useFallback) {
-            this.canvas2d = this.canvas;
-            this.ctx2d    = this.canvas.getContext('2d');
-            this.canvas2d.width  = window.innerWidth;
-            this.canvas2d.height = window.innerHeight;
-        }
-    };
+        // Cache capsule logo for music-synced breathing
+        this._capsuleLogo = document.getElementById('ring-logo');
 
-    HydraVisualizer.prototype._initCanvas2D = function () {
-        if (!this.useFallback) return;
-        // Will be assigned in _init after useFallback is determined
+        // Ambient idle visualization runs immediately, even before playback,
+        // so the canvas is always alive.
+        this.start();
+        console.log('[Sonoria] Canvas 2D visual engine active (ambient mode)');
     };
 
     HydraVisualizer.prototype._initAlbumCanvas = function () {
