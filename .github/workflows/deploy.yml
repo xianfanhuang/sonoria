@@ -2,7 +2,6 @@ name: Deploy to GitHub Pages
 
 on:
   push:
-    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -23,19 +22,16 @@ jobs:
       - name: Prepare artifact
         run: |
           mkdir publish
-          # Use --no-preserve=links to ensure no hard links are preserved
           cp --no-preserve=links index.html publish/
           touch publish/.nojekyll
 
-          [ -f hydra-synth.min.js ] && cp --no-preserve=links hydra-synth.min.js publish/
           [ -f strudel.js ] && cp --no-preserve=links strudel.js publish/
 
           if [ -d js ]; then
-            # -L ensures symlinks are followed and copied as regular files
             cp -rL --no-preserve=links js publish/
           fi
 
-          # Final safety check: remove any symlinks that might have been copied
+          # Safety cleanup: ensure no symlinks remain
           find publish -type l -delete
 
           echo "Artifact content size:"
