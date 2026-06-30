@@ -1,3 +1,15 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
 jobs:
   deploy:
     environment:
@@ -10,7 +22,6 @@ jobs:
 
       - name: Prepare artifact
         run: |
-
           mkdir publish
           # Use --no-preserve=links to ensure no hard links are preserved
           cp --no-preserve=links index.html publish/
@@ -24,8 +35,6 @@ jobs:
             cp -rL --no-preserve=links js publish/
           fi
 
-
-
           # Final safety check: remove any symlinks that might have been copied
           find publish -type l -delete
 
@@ -38,13 +47,6 @@ jobs:
         uses: actions/upload-pages-artifact@v3
         with:
           path: publish/
-
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
-
-          path: publish/
-
 
       - name: Deploy to GitHub Pages
         id: deployment
