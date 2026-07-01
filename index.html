@@ -260,8 +260,8 @@
             background: transparent;
             border: none;
             color: var(--txt-60);
-            width: 40px;
-            height: 40px;
+            width: 44px; /* Increased from 40px */
+            height: 44px; /* Increased from 40px */
             border-radius: 50%;
             display: grid;
             place-items: center;
@@ -705,12 +705,13 @@
         .styles-scroll::-webkit-scrollbar-thumb { background: var(--glass-border); border-radius: 2px; }
 
         .style-card {
-            padding: 12px 10px;
+            padding: 16px 12px; /* Increased from 12px 10px */
             background: var(--glass-1);
             border: 1px solid var(--glass-border);
             border-radius: 14px;
             cursor: pointer;
             transition: all 0.2s;
+            min-height: 80px; /* Added for better touch target */
         }
 
         .style-card:hover { background: var(--glass-2); border-color: var(--glass-border-hi); }
@@ -976,6 +977,7 @@
         *:focus-visible {
             outline: 2px solid var(--cyan);
             outline-offset: 2px;
+            box-shadow: 0 0 0 4px rgba(0, 229, 204, 0.2);
         }
 
         /* Prevent FOUC */
@@ -1131,6 +1133,14 @@ stack(
                 </button>
             </nav>
 
+            <!-- VOLUME SLIDER -->
+            <div class="volume-control" style="display: flex; align-items: center; gap: 12px; margin-bottom: 24px; padding: 0 10px;">
+                <i class="material-icons-round" style="font-size: 18px; color: var(--txt-35);">volume_up</i>
+                <input type="range" id="vol-slider" min="0" max="1" step="0.01" value="1"
+                    style="flex: 1; height: 4px; border-radius: 2px; -webkit-appearance: none; background: rgba(255,255,255,0.1); outline: none;"
+                    aria-label="Volume">
+            </div>
+
             <!-- TOOLBAR -->
             <div class="toolbar" role="toolbar" aria-label="Tools">
                 <button class="add-pill" onclick="toggleDrawer('input-drawer')" aria-label="Add music">
@@ -1165,6 +1175,9 @@ stack(
             <div class="capsule-track" id="capsule-text">Soul Frequency</div>
             <div class="capsule-mood" id="capsule-mood">Serene</div>
         </div>
+        <button class="capsule-play-btn" onclick="document.getElementById('app').classList.remove('zen'); resetZen();" title="Exit Zen Mode" aria-label="Exit Zen Mode">
+            <i class="material-icons-round">close</i>
+        </button>
         <button class="capsule-play-btn" id="capsule-play" aria-label="Play / Pause">
             <i class="material-icons-round">play_arrow</i>
         </button>

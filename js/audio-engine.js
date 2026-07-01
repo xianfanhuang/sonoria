@@ -30,6 +30,10 @@
                 window.state.analyser = window.state.ctx.createAnalyser();
                 window.state.analyser.fftSize = 2048;
                 window.state.analyser.smoothingTimeConstant = 0.8;
+
+                window.state.gainNode = window.state.ctx.createGain();
+                window.state.gainNode.connect(window.state.ctx.destination);
+
                 // v6.0.2: 移除默认连接，避免麦克风直通扬声器
                 // 音乐播放时手动连接 destination（见 playTrack/_doPlayUrl）
                 // Air Resonance 只连 analyser，无声音输出（正确行为）
@@ -71,8 +75,8 @@
                         window.state.audioEl
                     );
                     window.state.src.connect(window.state.analyser);
-                    // v6.0.2: 音乐播放时连接 destination（麦克风不连，避免窜音）
-                    window.state.src.connect(window.state.ctx.destination);
+                    // v6.0.2: 音乐播放时连接 gainNode (进而连接 destination)
+                    window.state.src.connect(window.state.gainNode);
                 } catch (e) {
                     console.warn('CORS limitation', e);
                     window.SonoriaUtils.showToast('受源站限制，仅播放音频');
@@ -136,8 +140,8 @@
                     window.state.audioEl
                 );
                 window.state.src.connect(window.state.analyser);
-                // v6.0.2: 音乐播放时连接 destination（麦克风不连，避免窜音）
-                window.state.src.connect(window.state.ctx.destination);
+                // v6.0.2: 音乐播放时连接 gainNode (进而连接 destination)
+                window.state.src.connect(window.state.gainNode);
             } catch (e) {
                 console.warn('Viz connect fail');
             }
@@ -259,6 +263,36 @@
             if (window.ui.tTime) window.ui.tTime.innerText = window.SonoriaUtils.fmt(el.duration);
         };
     };
+    AudioEngine.prototype.removeTrack = function (idx) {
+        if (idx < 0 || idx >= window.state.playlist.length) return;
+        var track = window.state.playlist[idx];
+
+        // Revoke Object URL if it's a local file to prevent memory leak
+        if (track.src && track.src.indexOf('blob:') === 0) {
+            URL.revokeObjectURL(track.src);
+        }
+
+        window.state.playlist.splice(idx, 1);
+
+        if (window.state.trackIdx === idx) {
+            this.stop(false);
+            if (window.state.playlist.length > 0) {
+                window.state.trackIdx = window.state.trackIdx % window.state.playlist.length;
+                this.renderPlaylist();
+                this.updateMeta('Track Removed', 'Select another track');
+            } else {
+                window.state.trackIdx = 0;
+                this.renderPlaylist();
+                this.updateMeta('Sonoria', 'Add music to begin');
+            }
+        } else {
+            if (window.state.trackIdx > idx) {
+                window.state.trackIdx--;
+            }
+            this.renderPlaylist();
+        }
+        window.SonoriaUtils.showToast('Track removed');
+    };
     AudioEngine.prototype.renderPlaylist = function () {
         var plView = window.ui.plView || document.getElementById('playlist-view');
         if (!plView) return;
@@ -276,6 +310,7 @@
                 (isActive ? 'equalizer' : 'music_note') +
                 '</i>' +
                 '<span class="pl-name">' + t.name + '</span>' +
+                '<i class="material-icons-round pl-remove" title="Remove" onclick="event.stopPropagation(); engine.removeTrack(' + i + ')" style="font-size: 18px; opacity: 0.5; padding: 4px;">close</i>' +
                 '</div>';
         }).join('');
     };
