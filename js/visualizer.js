@@ -63,11 +63,43 @@
     }
 
     HydraVisualizer.prototype._init = function () {
-        // v8.0 — Canvas 2D is the sole, reliable renderer.
-        // Hydra/WebGL was disabled: its style code relied on global synth vars
-        // (s, a, osc…) that don't exist without makeGlobal, causing
-        // "can't find variable a" errors and black screens.
-        this.useFallback = true;
+        var self = this;
+
+        // Re-enabling Hydra with makeGlobal: false to avoid global scope pollution
+        // while still providing the visual engine when WebGL is available.
+        if (window.webglSupport && window.webglSupport.available && typeof window.Hydra !== 'undefined') {
+            try {
+                this.hydra = new window.Hydra({
+                    canvas: this.canvas,
+                    detectAudio: false,
+                    makeGlobal: false
+                });
+                // Expose necessary functions for styles-config.js
+                this.synth = {
+                    osc: this.hydra.osc.bind(this.hydra),
+                    shape: this.hydra.shape.bind(this.hydra),
+                    noise: this.hydra.noise.bind(this.hydra),
+                    gradient: this.hydra.gradient.bind(this.hydra),
+                    src: this.hydra.src.bind(this.hydra),
+                    s0: this.hydra.s0,
+                    s1: this.hydra.s1,
+                    s2: this.hydra.s2,
+                    s3: this.hydra.s3,
+                    o0: this.hydra.o0,
+                    o1: this.hydra.o1,
+                    o2: this.hydra.o2,
+                    o3: this.hydra.o3
+                };
+                this.useFallback = false;
+                console.log('[Sonoria] Hydra WebGL engine initialized');
+            } catch (e) {
+                console.warn('[Sonoria] Hydra init failed, using fallback:', e);
+                this.useFallback = true;
+            }
+        } else {
+            this.useFallback = true;
+        }
+
         this.canvas2d    = this.canvas;
         this.ctx2d       = this.canvas.getContext('2d');
         this.canvas2d.width  = window.innerWidth;
@@ -217,15 +249,11 @@
         }
 
         try {
-            if (typeof a !== 'undefined' && a.setBins) {
-                a.setBins(4);
-                a.smoothing = 0.8;
-            }
-        } catch(e) {}
-
-        try {
+            var synth = this.synth;
             var bands = getAudioBands();
-            style.render(hue, bands.low, bands.mid, bands.high, bands.energy);
+            // Provide context for style.render and pass 'time' explicitly if needed
+            // However, styles use 'time' which is now bound to window.time in main loop
+            style.render.call(synth, hue, bands.low, bands.mid, bands.high, bands.energy, synth);
         } catch (e) {
             console.warn('[Sonoria] Hydra style error:', e);
         }
