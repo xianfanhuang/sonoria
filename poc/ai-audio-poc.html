@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Sonoria v3.0 AI Audio PoC</title>
+    <script src="https://unpkg.com/tone"></script>
+    <style>
+        body { background: #0a0a0c; color: #fff; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+        .controls { background: #1a1a1e; padding: 2rem; border-radius: 1rem; box-shadow: 0 10px 30px rgba(0,0,0,0.5); text-align: center; }
+        button { background: #10b981; border: none; color: white; padding: 0.8rem 1.5rem; border-radius: 0.5rem; cursor: pointer; font-size: 1rem; margin-top: 1rem; }
+    </style>
+</head>
+<body>
+    <div class="controls">
+        <h2>AI Generative Audio PoC</h2>
+        <p>Using Tone.js for real-time synthesis</p>
+        <button id="startBtn">Generate Soundscape</button>
+    </div>
+
+    <script>
+        const startBtn = document.getElementById('startBtn');
+        let playing = false;
+
+        startBtn.onclick = async () => {
+            await Tone.start();
+            if (!playing) {
+                // Create a simple generative ambient engine
+                const synth = new Tone.PolySynth(Tone.Synth, {
+                    oscillator: { type: "sine" },
+                    envelope: { attack: 2, decay: 1, sustain: 1, release: 4 }
+                }).toDestination();
+
+                const reverb = new Tone.Reverb(5).toDestination();
+                synth.connect(reverb);
+
+                const notes = ["C3", "E3", "G3", "B3", "D4", "F#4"];
+
+                Tone.Transport.scheduleRepeat((time) => {
+                    const note = notes[Math.floor(Math.random() * notes.length)];
+                    synth.triggerAttackRelease(note, "2n", time);
+                }, "4n");
+
+                Tone.Transport.start();
+                startBtn.innerText = "Stop Generation";
+                playing = true;
+            } else {
+                Tone.Transport.stop();
+                startBtn.innerText = "Start Generation";
+                playing = false;
+            }
+        };
+    </script>
+</body>
+</html>

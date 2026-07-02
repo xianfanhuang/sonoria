@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Sonoria v3.0 Radio PoC</title>
+    <style>
+        body { background: #0a0a0c; color: #fff; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+        .controls { background: #1a1a1e; padding: 2rem; border-radius: 1rem; box-shadow: 0 10px 30px rgba(0,0,0,0.5); text-align: center; }
+        button { background: #6366f1; border: none; color: white; padding: 0.8rem 1.5rem; border-radius: 0.5rem; cursor: pointer; font-size: 1rem; margin-top: 1rem; }
+        #status { margin-top: 1rem; color: #a1a1aa; font-size: 0.9rem; }
+    </style>
+</head>
+<body>
+    <div class="controls">
+        <h2>Radio Streaming PoC</h2>
+        <p>Station: SomaFM - Deep Space One</p>
+        <button id="playBtn">Play Stream</button>
+        <div id="status">Ready</div>
+    </div>
+
+    <script>
+        const playBtn = document.getElementById('playBtn');
+        const status = document.getElementById('status');
+        let audioCtx, source, analyser;
+
+        playBtn.onclick = async () => {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                analyser = audioCtx.createAnalyser();
+
+                const audio = new Audio();
+                audio.crossOrigin = "anonymous";
+                // SomaFM Deep Space One stream URL
+                audio.src = "https://ice1.somafm.com/deepspaceone-128-mp3";
+
+                source = audioCtx.createMediaElementSource(audio);
+                source.connect(analyser);
+                analyser.connect(audioCtx.destination);
+
+                audio.play();
+                status.innerText = "Connecting to SomaFM...";
+
+                audio.onplaying = () => { status.innerText = "Streaming: SomaFM - Deep Space One"; };
+                playBtn.innerText = "Pause";
+            } else {
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                    playBtn.innerText = "Pause";
+                } else {
+                    audioCtx.suspend();
+                    playBtn.innerText = "Resume";
+                }
+            }
+        };
+    </script>
+</body>
+</html>
