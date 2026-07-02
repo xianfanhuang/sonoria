@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Sonoria v3.0 Resource Pool PoC</title>
+    <style>
+        body { background: #0a0a0c; color: #fff; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+        .controls { background: #1a1a1e; padding: 2rem; border-radius: 1rem; box-shadow: 0 10px 30px rgba(0,0,0,0.5); text-align: center; }
+        button { background: #f59e0b; border: none; color: white; padding: 0.8rem 1.5rem; border-radius: 0.5rem; cursor: pointer; font-size: 1rem; margin-top: 1rem; }
+        .source-info { margin-top: 1rem; color: #a1a1aa; font-size: 0.8rem; }
+    </style>
+</head>
+<body>
+    <div class="controls">
+        <h2>Resource Pool PoC</h2>
+        <p>Loading CC0/Royalty Free Music</p>
+        <button id="loadBtn">Load Incompetech Track</button>
+        <div class="source-info">Source: Kevin MacLeod (incompetech.com)</div>
+    </div>
+
+    <script>
+        const loadBtn = document.getElementById('loadBtn');
+        let audio;
+
+        loadBtn.onclick = () => {
+            if (!audio) {
+                audio = new Audio("https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"); // Generic example
+                audio.play();
+                loadBtn.innerText = "Pause Track";
+            } else {
+                if (audio.paused) {
+                    audio.play();
+                    loadBtn.innerText = "Pause Track";
+                } else {
+                    audio.pause();
+                    loadBtn.innerText = "Resume Track";
+                }
+            }
+        };
+    </script>
+</body>
+</html>

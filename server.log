@@ -1,0 +1,4 @@
+127.0.0.1 - - [02/Jul/2026 11:04:11] "GET /poc/visual-poc.html HTTP/1.1" 200 -
+127.0.0.1 - - [02/Jul/2026 11:04:15] "GET /poc/radio-poc.html HTTP/1.1" 200 -
+127.0.0.1 - - [02/Jul/2026 11:04:16] "GET /poc/ai-audio-poc.html HTTP/1.1" 200 -
+127.0.0.1 - - [02/Jul/2026 11:04:17] "GET /poc/resource-pool-poc.html HTTP/1.1" 200 -
