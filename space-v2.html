@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Sonoria AI Pro · Emotional Space Host</title>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        :root {
+            --amber-100: #fef3c7; --amber-200: #fde68a; --amber-300: #fcd34d; --amber-400: #fbbf24;
+            --amber-500: #f59e0b; --amber-600: #d97706; --amber-700: #b45309;
+            --deep-900: #0a0a0f; --deep-800: #12121a; --deep-700: #1a1a25; --deep-600: #252535;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+            background: var(--deep-900); color: #fff; min-height: 100vh; overflow: hidden;
+            position: relative; transition: background 3s ease; -webkit-font-smoothing: antialiased;
+        }
+        body.scene-meditation { background: linear-gradient(180deg, #0f0a05 0%, #1a1208 30%, #1f150a 60%, #0a0a0f 100%); }
+        body.scene-focus { background: linear-gradient(180deg, #050a15 0%, #0a1525 30%, #0d1a2e 60%, #0a0a0f 100%); }
+        body.scene-sleep { background: linear-gradient(180deg, #0a0515 0%, #150a25 30%, #1a0d2e 60%, #0a0a0f 100%); }
+        .ambient-glow { position: fixed; width: 600px; height: 600px; border-radius: 50%; filter: blur(120px); opacity: 0.15; pointer-events: none; transition: all 3s ease; z-index: 0; }
+        .glow-1 { top: -200px; left: -100px; background: var(--amber-500); }
+        .glow-2 { bottom: -200px; right: -100px; background: #7c3aed; }
+        body.scene-focus .glow-1 { background: #3b82f6; }
+        body.scene-focus .glow-2 { background: #06b6d4; }
+        body.scene-sleep .glow-1 { background: #8b5cf6; }
+        body.scene-sleep .glow-2 { background: #ec4899; }
+        .app-container { position: relative; z-index: 10; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: space-between; padding: 40px 20px; }
+        .header { text-align: center; opacity: 0; transform: translateY(-20px); animation: fadeInDown 1.5s ease forwards; animation-delay: 0.5s; z-index: 30; }
+        .time-display { font-size: 48px; font-weight: 200; letter-spacing: 4px; color: rgba(255,255,255,0.4); margin-bottom: 8px; font-variant-numeric: tabular-nums; transition: color 2s ease; }
+        body.scene-meditation .time-display { color: rgba(245,158,11,0.3); }
+        body.scene-focus .time-display { color: rgba(59,130,246,0.3); }
+        body.scene-sleep .time-display { color: rgba(139,92,246,0.3); }
+        .brand { font-size: 12px; font-weight: 300; letter-spacing: 6px; text-transform: uppercase; color: rgba(255,255,255,0.5); margin-bottom: 4px; }
+        .brand-subtitle { font-size: 11px; font-weight: 300; letter-spacing: 2px; color: rgba(255,255,255,0.25); }
+        .session-time { font-size: 11px; letter-spacing: 2px; color: rgba(255,255,255,0.2); margin-top: 8px; font-variant-numeric: tabular-nums; opacity: 0; transition: opacity 1s ease; }
+        .session-time.active { opacity: 1; }
+        .visualizer-section { flex: 1; display: flex; align-items: center; justify-content: center; width: 100%; max-width: 600px; position: relative; touch-action: none; cursor: grab; user-select: none; -webkit-user-select: none; }
+        .visualizer-section:active { cursor: grabbing; }
+        #visualizer-canvas { width: 100%; height: 350px; opacity: 0; animation: fadeIn 2s ease forwards; animation-delay: 1s; }
+        .gesture-hint { position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); font-size: 11px; letter-spacing: 1px; color: rgba(255,255,255,0.15); opacity: 0; transition: opacity 1s ease; pointer-events: none; white-space: nowrap; }
+        .gesture-hint.visible { opacity: 1; animation: hintPulse 4s ease-in-out infinite; }
+        @keyframes hintPulse { 0%,100% { opacity: 0.1; } 50% { opacity: 0.25; } }
+        .host-message { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); text-align: center; width: 80%; opacity: 0; transition: opacity 1s ease; pointer-events: none; z-index: 20; }
+        .host-message.active { opacity: 1; }
+        .host-message p { font-size: 18px; font-weight: 300; line-height: 1.8; color: rgba(255,255,255,0.95); letter-spacing: 1px; text-shadow: 0 2px 20px rgba(0,0,0,0.8); }
+        .host-message .source { margin-top: 16px; font-size: 12px; color: rgba(255,255,255,0.5); letter-spacing: 2px; }
+        .volume-ripple { position: absolute; border-radius: 50%; pointer-events: none; z-index: 15; transform: translate(-50%,-50%) scale(0); animation: rippleExpand 0.8s ease-out forwards; }
+        @keyframes rippleExpand { 0% { transform: translate(-50%,-50%) scale(0); opacity: 0.6; } 100% { transform: translate(-50%,-50%) scale(4); opacity: 0; } }
+        .scene-flash { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 50; opacity: 0; transition: opacity 0.3s ease; }
+        .scene-flash.active { opacity: 0.15; animation: flashFade 0.6s ease forwards; }
+        @keyframes flashFade { 0% { opacity: 0.15; } 100% { opacity: 0; } }
+        .center-controls { display: flex; flex-direction: column; align-items: center; gap: 30px; opacity: 0; transform: translateY(20px); animation: fadeInUp 1.5s ease forwards; animation-delay: 0.8s; z-index: 30; }
+        .play-button { width: 80px; height: 80px; border-radius: 50%; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: transform 0.4s cubic-bezier(0.34,1.56,0.64,1), background 0.5s ease, border-color 0.5s ease, box-shadow 0.5s ease; backdrop-filter: blur(20px) saturate(180%); -webkit-backdrop-filter: blur(20px) saturate(180%); box-shadow: inset 0 1px 1px rgba(255,255,255,0.1), 0 4px 30px rgba(0,0,0,0.1); }
+        .play-button:hover { background: rgba(255,255,255,0.06); transform: scale(1.06); border-color: rgba(255,255,255,0.15); }
+        .play-button:active { transform: scale(0.92); transition: transform 0.15s cubic-bezier(0.34,1.56,0.64,1); }
+        .play-button.playing { background: rgba(245,158,11,0.08); border-color: rgba(245,158,11,0.25); box-shadow: inset 0 1px 1px rgba(255,255,255,0.1), 0 0 50px rgba(245,158,11,0.12); }
+        body.scene-focus .play-button.playing { background: rgba(59,130,246,0.08); border-color: rgba(59,130,246,0.25); box-shadow: inset 0 1px 1px rgba(255,255,255,0.1), 0 0 50px rgba(59,130,246,0.12); }
+        body.scene-sleep .play-button.playing { background: rgba(139,92,246,0.08); border-color: rgba(139,92,246,0.25); box-shadow: inset 0 1px 1px rgba(255,255,255,0.1), 0 0 50px rgba(139,92,246,0.12); }
+        .play-button .material-icons-round { font-size: 32px; }
+        .current-status { text-align: center; }
+        .status-label { font-size: 11px; letter-spacing: 3px; text-transform: uppercase; color: rgba(255,255,255,0.3); margin-bottom: 6px; }
+        .status-text { font-size: 16px; font-weight: 300; color: rgba(255,255,255,0.7); letter-spacing: 1px; transition: color 0.5s ease; }
+        .scene-selector { display: flex; gap: 6px; padding: 5px; background: rgba(255,255,255,0.02); border-radius: 50px; border: 1px solid rgba(255,255,255,0.04); backdrop-filter: blur(20px) saturate(180%); -webkit-backdrop-filter: blur(20px) saturate(180%); }
+        .scene-btn { padding: 10px 22px; border: none; background: transparent; color: rgba(255,255,255,0.45); font-size: 13px; font-weight: 400; letter-spacing: 0.5px; border-radius: 50px; cursor: pointer; transition: all 0.35s cubic-bezier(0.34,1.56,0.64,1); position: relative; overflow: hidden; }
+        .scene-btn:hover { color: rgba(255,255,255,0.8); transform: scale(1.03); }
+        .scene-btn:active { transform: scale(0.95); transition: transform 0.1s ease; }
+        .scene-btn.active { background: rgba(255,255,255,0.08); color: #fff; box-shadow: 0 2px 12px rgba(0,0,0,0.2); }
+        body.scene-meditation .scene-btn.active[data-scene="meditation"] { background: rgba(245,158,11,0.18); color: var(--amber-300); box-shadow: 0 2px 16px rgba(245,158,11,0.15); }
+        body.scene-focus .scene-btn.active[data-scene="focus"] { background: rgba(59,130,246,0.18); color: #60a5fa; box-shadow: 0 2px 16px rgba(59,130,246,0.15); }
+        body.scene-sleep .scene-btn.active[data-scene="sleep"] { background: rgba(139,92,246,0.18); color: #a78bfa; box-shadow: 0 2px 16px rgba(139,92,246,0.15); }
+
+        /* ===== RADIO PANEL — Liquid Glass Sheet ===== */
+        .radio-panel { position: fixed; bottom: 0; left: 0; width: 100%; max-height: 0; background: rgba(10,10,15,0.75); backdrop-filter: blur(40px) saturate(180%); -webkit-backdrop-filter: blur(40px) saturate(180%); border-top: 1px solid rgba(255,255,255,0.06); border-radius: 24px 24px 0 0; z-index: 60; overflow: hidden; transition: max-height 0.5s cubic-bezier(0.34,1.56,0.64,1), padding 0.5s cubic-bezier(0.34,1.56,0.64,1); padding: 0 20px; }
+        .radio-panel.open { max-height: 480px; padding: 24px 20px 32px; }
+        .radio-panel-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+        .radio-panel-title { font-size: 14px; font-weight: 400; letter-spacing: 3px; text-transform: uppercase; color: rgba(255,255,255,0.5); }
+        .radio-panel-close { width: 32px; height: 32px; border-radius: 50%; background: rgba(255,255,255,0.05); border: none; color: rgba(255,255,255,0.5); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.3s ease; }
+        .radio-panel-close:hover { background: rgba(255,255,255,0.1); color: #fff; transform: scale(1.1); }
+        .radio-panel-close:active { transform: scale(0.9); }
+        .radio-stations { display: flex; flex-direction: column; gap: 8px; max-height: 360px; overflow-y: auto; padding-right: 4px; }
+        .radio-stations::-webkit-scrollbar { width: 3px; }
+        .radio-stations::-webkit-scrollbar-track { background: transparent; }
+        .radio-stations::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+        .radio-station { display: flex; align-items: center; gap: 14px; padding: 14px 16px; border-radius: 16px; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.04); cursor: pointer; transition: all 0.35s cubic-bezier(0.34,1.56,0.64,1); position: relative; overflow: hidden; }
+        .radio-station:hover { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.1); transform: translateX(4px); }
+        .radio-station:active { transform: scale(0.98); }
+        .radio-station.active { background: rgba(245,158,11,0.1); border-color: rgba(245,158,11,0.2); }
+        body.scene-focus .radio-station.active { background: rgba(59,130,246,0.1); border-color: rgba(59,130,246,0.2); }
+        body.scene-sleep .radio-station.active { background: rgba(139,92,246,0.1); border-color: rgba(139,92,246,0.2); }
+        .station-icon { width: 44px; height: 44px; border-radius: 12px; background: rgba(255,255,255,0.05); display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 20px; color: rgba(255,255,255,0.6); transition: all 0.3s ease; }
+        .radio-station.active .station-icon { background: rgba(245,158,11,0.15); color: var(--amber-400); }
+        body.scene-focus .radio-station.active .station-icon { background: rgba(59,130,246,0.15); color: #60a5fa; }
+        body.scene-sleep .radio-station.active .station-icon { background: rgba(139,92,246,0.15); color: #a78bfa; }
+        .station-info { flex: 1; min-width: 0; }
+        .station-name { font-size: 14px; font-weight: 400; color: rgba(255,255,255,0.85); letter-spacing: 0.3px; margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .station-desc { font-size: 12px; font-weight: 300; color: rgba(255,255,255,0.35); letter-spacing: 0.3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .station-status { width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.3s ease; }
+        .radio-station.active .station-status { opacity: 1; }
+        .station-loading { width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.2); border-top-color: rgba(255,255,255,0.8); border-radius: 50%; animation: spin 0.8s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .playing-bars { display: flex; align-items: flex-end; gap: 2px; height: 14px; }
+        .playing-bar { width: 2px; background: var(--amber-400); border-radius: 1px; animation: barBounce 0.8s ease-in-out infinite; }
+        body.scene-focus .playing-bar { background: #60a5fa; }
+        body.scene-sleep .playing-bar { background: #a78bfa; }
+        .playing-bar:nth-child(1) { height: 6px; animation-delay: 0s; }
+        .playing-bar:nth-child(2) { height: 10px; animation-delay: 0.15s; }
+        .playing-bar:nth-child(3) { height: 14px; animation-delay: 0.3s; }
+        .playing-bar:nth-child(4) { height: 8px; animation-delay: 0.45s; }
+        @keyframes barBounce { 0%,100% { transform: scaleY(0.6); } 50% { transform: scaleY(1); } }
+        .radio-now-playing { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%) translateY(20px); padding: 10px 20px; background: rgba(10,10,15,0.7); backdrop-filter: blur(20px) saturate(180%); -webkit-backdrop-filter: blur(20px) saturate(180%); border: 1px solid rgba(255,255,255,0.06); border-radius: 50px; display: flex; align-items: center; gap: 10px; opacity: 0; pointer-events: none; transition: all 0.5s cubic-bezier(0.34,1.56,0.64,1); z-index: 55; }
+        .radio-now-playing.visible { opacity: 1; transform: translateX(-50%) translateY(0); pointer-events: auto; }
+        .radio-now-playing .playing-bars { height: 12px; }
+        .radio-now-playing .playing-bar { width: 2px; border-radius: 1px; }
+        .radio-now-playing .playing-bar:nth-child(1) { height: 5px; }
+        .radio-now-playing .playing-bar:nth-child(2) { height: 8px; }
+        .radio-now-playing .playing-bar:nth-child(3) { height: 11px; }
+        .radio-now-playing .playing-bar:nth-child(4) { height: 6px; }
+        .radio-now-playing-text { font-size: 12px; font-weight: 300; color: rgba(255,255,255,0.7); letter-spacing: 0.5px; white-space: nowrap; }
+        .toolbar { display: flex; align-items: center; gap: 12px; opacity: 0; animation: fadeIn 1.5s ease forwards; animation-delay: 1.2s; z-index: 30; padding: 8px 16px; border-radius: 50px; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.04); backdrop-filter: blur(20px) saturate(180%); -webkit-backdrop-filter: blur(20px) saturate(180%); }
+        .tool-btn { width: 40px; height: 40px; border-radius: 50%; background: transparent; border: none; color: rgba(255,255,255,0.4); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1); }
+        .tool-btn:hover { color: rgba(255,255,255,0.85); background: rgba(255,255,255,0.06); transform: scale(1.1); }
+        .tool-btn:active { transform: scale(0.9); transition: transform 0.1s ease; }
+        .tool-btn.active { color: var(--amber-400); background: rgba(245,158,11,0.08); }
+        body.scene-focus .tool-btn.active { color: #60a5fa; background: rgba(59,130,246,0.08); }
+        body.scene-sleep .tool-btn.active { color: #a78bfa; background: rgba(139,92,246,0.08); }
+        .tool-btn .material-icons-round { font-size: 20px; }
+        .volume-control { display: flex; align-items: center; gap: 8px; }
+        .volume-slider { width: 80px; height: 3px; -webkit-appearance: none; appearance: none; background: rgba(255,255,255,0.08); border-radius: 3px; outline: none; transition: background 0.3s ease; }
+        .volume-slider:hover { background: rgba(255,255,255,0.15); }
+        .volume-slider::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 14px; height: 14px; border-radius: 50%; background: rgba(255,255,255,0.7); cursor: pointer; transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1); box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
+        .volume-slider::-webkit-slider-thumb:hover { background: #fff; transform: scale(1.3); box-shadow: 0 0 12px rgba(255,255,255,0.3); }
+        .volume-slider::-webkit-slider-thumb:active { transform: scale(1.5); }
+        .formula-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 5; opacity: 0; transition: opacity 2s ease; }
+        .formula-overlay.active { opacity: 1; }
+        .formula-text { position: absolute; font-family: 'Times New Roman', Georgia, serif; font-style: italic; font-size: 13px; color: rgba(255,255,255,0.1); letter-spacing: 1px; transition: all 3s ease; white-space: nowrap; animation: formulaFloat 8s ease-in-out infinite; }
+        @keyframes formulaFloat { 0%,100% { transform: translateY(0) rotate(0deg); opacity: 0.08; } 50% { transform: translateY(-12px) rotate(1deg); opacity: 0.18; } }
+        .welcome-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--deep-900); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100; transition: opacity 1.5s ease, visibility 1.5s ease; }
+        .welcome-screen.hidden { opacity: 0; visibility: hidden; }
+        .welcome-brand { font-size: 32px; font-weight: 200; letter-spacing: 12px; margin-bottom: 16px; opacity: 0; animation: fadeIn 2s ease forwards; }
+        .welcome-tagline { font-size: 14px; font-weight: 300; letter-spacing: 3px; color: rgba(255,255,255,0.4); opacity: 0; animation: fadeIn 2s ease forwards; animation-delay: 0.5s; }
+        .enter-btn { margin-top: 60px; padding: 16px 48px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.12); color: rgba(255,255,255,0.7); font-size: 14px; font-weight: 300; letter-spacing: 4px; border-radius: 50px; cursor: pointer; transition: all 0.4s cubic-bezier(0.34,1.56,0.64,1); opacity: 0; animation: fadeIn 2s ease forwards; animation-delay: 1s; backdrop-filter: blur(10px); }
+        .enter-btn:hover { background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.3); color: #fff; transform: scale(1.04); }
+        .enter-btn:active { transform: scale(0.96); transition: transform 0.15s ease; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes fadeInDown { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        @media (prefers-reduced-motion: reduce) { *,*::before,*::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; } .ambient-glow { display: none; } .formula-overlay { display: none; } }
+        @media (max-width: 480px) { .app-container { padding: 30px 16px; } .brand { font-size: 12px; letter-spacing: 6px; } #visualizer-canvas { height: 280px; } .host-message p { font-size: 16px; } .play-button { width: 70px; height: 70px; } .scene-btn { padding: 8px 16px; font-size: 12px; } .volume-slider { width: 60px; } .toolbar { gap: 8px; padding: 6px 12px; } .radio-panel.open { padding: 20px 16px 28px; } .radio-station { padding: 12px 14px; } .station-icon { width: 40px; height: 40px; } }
+    </style>
+</head>
+<body class="scene-meditation">
+    <div class="scene-flash" id="sceneFlash"></div>
+    <div class="ambient-glow glow-1"></div>
+    <div class="ambient-glow glow-2"></div>
+    <div class="formula-overlay" id="formulaOverlay"></div>
+    <div class="welcome-screen" id="welcomeScreen">
+        <div class="welcome-brand">SONORIA</div>
+        <div class="welcome-tagline">Emotional Space Host</div>
+        <button class="enter-btn" onclick="enterSpace()">Enter Space</button>
+    </div>
+    <div class="app-container">
+        <header class="header">
+            <div class="time-display" id="timeDisplay">00:00</div>
+            <div class="brand">Sonoria</div>
+            <div class="brand-subtitle">AI Pro · Emotional Space Host</div>
+            <div class="session-time" id="sessionTime">Session 00:00</div>
+        </header>
+        <section class="visualizer-section" id="visualizerSection">
+            <canvas id="visualizer-canvas"></canvas>
+            <div class="host-message" id="hostMessage">
+                <p id="hostText"></p>
+                <div class="source">— Sonoria</div>
+            </div>
+            <div class="gesture-hint" id="gestureHint">Swipe up/down for volume · left/right for scene</div>
+        </section>
+        <section class="center-controls">
+            <div class="current-status">
+                <div class="status-label">Current Space</div>
+                <div class="status-text" id="currentScene">Meditation · Amber Time</div>
+            </div>
+            <button class="play-button" id="playButton" onclick="togglePlay()">
+                <span class="material-icons-round" id="playIcon">play_arrow</span>
+            </button>
+            <div class="scene-selector">
+                <button class="scene-btn active" data-scene="meditation" onclick="switchScene('meditation')">Meditation</button>
+                <button class="scene-btn" data-scene="focus" onclick="switchScene('focus')">Focus</button>
+                <button class="scene-btn" data-scene="sleep" onclick="switchScene('sleep')">Sleep</button>
+            </div>
+        </section>
+        <footer class="toolbar">
+            <button class="tool-btn active" id="hostToggle" onclick="toggleHost()" title="AI Host"><span class="material-icons-round">record_voice_over</span></button>
+            <button class="tool-btn" id="radioToggle" onclick="toggleRadioPanel()" title="Radio"><span class="material-icons-round">radio</span></button>
+            <div class="volume-control">
+                <button class="tool-btn" onclick="toggleMute()" title="Volume"><span class="material-icons-round" id="volumeIcon">volume_up</span></button>
+                <input type="range" class="volume-slider" id="volumeSlider" min="0" max="100" value="60" oninput="changeVolume(this.value)">
+            </div>
+            <button class="tool-btn" onclick="toggleInfo()" title="About"><span class="material-icons-round">info_outline</span></button>
+        </footer>
+    </div>
+    <div class="radio-now-playing" id="radioNowPlaying">
+        <div class="playing-bars"><div class="playing-bar"></div><div class="playing-bar"></div><div class="playing-bar"></div><div class="playing-bar"></div></div>
+        <span class="radio-now-playing-text" id="radioNowPlayingText">Radio</span>
+    </div>
+    <div class="radio-panel" id="radioPanel">
+        <div class="radio-panel-header">
+            <span class="radio-panel-title">Radio Stations</span>
+            <button class="radio-panel-close" onclick="toggleRadioPanel()"><span class="material-icons-round" style="font-size:18px">close</span></button>
+        </div>
+        <div class="radio-stations" id="radioStations"></div>
+    </div>
+    <script>
+        const state = {
+            isPlaying: false, isHostEnabled: true, currentScene: 'meditation',
+            volume: 0.6, isMuted: false, audioContext: null, analyser: null,
+            dataArray: null, particles: [], formulaParticles: [], animationId: null,
+            sessionStartTime: null, sessionDuration: 0, ringPhase: 0, formulaTime: 0,
+            reducedMotion: window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+            radioAudio: null, currentStation: null, isRadioPlaying: false, radioPanelOpen: false,
+            radioConnecting: false
+        };
+
+        // ========== 5 Curated Radio Stations with Fallback URLs ==========
+        const radioStations = [
+            {
+                id: 'dronezone',
+                name: 'SomaFM Drone Zone',
+                description: 'Atmospheric textures · Minimal beats · San Francisco',
+                urls: [
+                    'https://ice2.somafm.com/dronezone-128-mp3',
+                    'https://ice5.somafm.com/dronezone-128-mp3',
+                    'https://ice3.somafm.com/dronezone-128-mp3',
+                    'https://ice.somafm.com/dronezone'
+                ],
+                icon: 'cloud', category: 'meditation'
+            },
+            {
+                id: 'deepspaceone',
+                name: 'SomaFM Deep Space One',
+                description: 'Deep ambient electronic · Space music · Exploration',
+                urls: [
+                    'https://ice2.somafm.com/deepspaceone-128-mp3',
+                    'https://ice5.somafm.com/deepspaceone-128-mp3',
+                    'https://ice3.somafm.com/deepspaceone-128-mp3',
+                    'https://ice.somafm.com/deepspaceone'
+                ],
+                icon: 'rocket_launch', category: 'focus'
+            },
+            {
+                id: 'groovesalad',
+                name: 'SomaFM Groove Salad',
+                description: 'Ambient/downtempo beats · Chill grooves · Cafe del Mar',
+                urls: [
+                    'https://ice2.somafm.com/groovesalad-128-mp3',
+                    'https://ice5.somafm.com/groovesalad-128-mp3',
+                    'https://ice3.somafm.com/groovesalad-128-mp3',
+                    'https://ice.somafm.com/groovesalad'
+                ],
+                icon: 'restaurant', category: 'meditation'
+            },
+            {
+                id: 'spacestation',
+                name: 'SomaFM Space Station Soma',
+                description: 'Spaced-out ambient · Mid-tempo electronica · 1990–now',
+                urls: [
+                    'https://ice2.somafm.com/spacestation-128-mp3',
+                    'https://ice5.somafm.com/spacestation-128-mp3',
+                    'https://ice3.somafm.com/spacestation-128-mp3',
+                    'https://ice.somafm.com/spacestation'
+                ],
+                icon: 'satellite_alt', category: 'focus'
+            },
+            {
+                id: 'lush',
+                name: 'SomaFM Lush',
+                description: 'Sensuous vocals · Mellow electronic · Dream pop',
+                urls: [
+                    'https://ice2.somafm.com/lush-128-mp3',
+                    'https://ice5.somafm.com/lush-128-mp3',
+                    'https://ice3.somafm.com/lush-128-mp3',
+                    'https://ice.somafm.com/lush'
+                ],
+                icon: 'auto_awesome', category: 'sleep'
+            }
+        ];
+
+        const scenes = {
+            meditation: {
+                name: 'Meditation · Amber Time',
+                hostMessages: ['Welcome to Amber Time. Here, time moves a little slower.','Breathe deeply. Let the music wrap around you like warm light.','In this moment, you only need to be. You need do nothing.','Like an insect in amber, let your thoughts rest in stillness.','The golden hour light is always gentle, just like you are now.','Feel the rhythm of your breath. Inhale. Exhale.','All anxiety is slowly melting, like ice under sunlight.','Your mind is a calm lake, without a single ripple.','You are safe here. You are held.','Let the past and future drift away. Just remain in the present.'],
+                colors: ['#f59e0b','#fbbf24','#fcd34d','#d97706','#fef3c7'], particleSpeed: 0.3, particleCount: 60, ringSpeed: 0.002, ringCount: 3,
+                formulaColors: ['#f59e0b','#fbbf24','#fcd34d','#d97706'], flashColor: 'rgba(245,158,11,0.3)'
+            },
+            focus: {
+                name: 'Focus · Deep Blue',
+                hostMessages: ['Entering deep focus space. Your mind will become crystal clear.','Like a deep-sea diver, focus only on what is before you.','Distractions will slowly fade, leaving only you and your creation.','Blue is the color of focus, and the beginning of infinite possibility.','Keep the rhythm. Let inspiration emerge naturally.','Your attention is as focused as a laser beam.','Every thought is clear as water, every action precise and powerful.','Time disappears in focus. You have entered the flow state.','Nothing can disturb you. You are in your own world.','The joy of creation is right here, right now.'],
+                colors: ['#3b82f6','#60a5fa','#06b6d4','#0ea5e9','#7dd3fc'], particleSpeed: 0.5, particleCount: 50, ringSpeed: 0.004, ringCount: 4,
+                formulaColors: ['#3b82f6','#60a5fa','#06b6d4','#0ea5e9'], flashColor: 'rgba(59,130,246,0.3)'
+            },
+            sleep: {
+                name: 'Sleep · Dream Purple',
+                hostMessages: ['Welcome to the Dream Purple realm. It is time for your body to rest.','Close your eyes. Let your thoughts dim like stars fading into dawn.','With every breath, you sink deeper into relaxation.','The gate of dreams is already open. Walk through with ease.','Tonight, you will sleep deeply and beautifully.','Your body grows heavier and heavier, sinking into comfort.','All fatigue is leaving your body.','Like a feather, gently float into the realm of dreams.','When you wake tomorrow, you will feel renewed.','Sleep now, dear one. Sleep.'],
+                colors: ['#8b5cf6','#a78bfa','#c084fc','#7c3aed','#ddd6fe'], particleSpeed: 0.12, particleCount: 45, ringSpeed: 0.001, ringCount: 2,
+                formulaColors: ['#8b5cf6','#a78bfa','#c084fc','#7c3aed'], flashColor: 'rgba(139,92,246,0.3)'
+            }
+        };
+        const sceneOrder = ['meditation','focus','sleep'];
+
+        class FormulaParticle {
+            constructor(w,h,scene){this.canvasWidth=w;this.canvasHeight=h;this.scene=scene;this.reset();}
+            reset(){this.i=Math.random()*2000;this.t=Math.random()*Math.PI*2;this.life=0;this.maxLife=200+Math.random()*300;this.trail=[];this.trailLength=15+Math.random()*25;this.size=0.5+Math.random()*2;this.baseHue=Math.random();this.speed=1+Math.random()*2;this.phase=Math.random()*Math.PI*2;}
+            computePosition(time){const i=this.i,t=this.t+time*0.001*this.speed+this.phase,y=i/500,e=y/8,k=Math.cos(5*y+time*0.0005),o=Math.sqrt(k*k+e*e)/6,m=Math.sin(y*3+t)*2,n=Math.cos(y*2+t*0.7)*3,q=2*k+49+Math.cos(y*0.5+time*0.0003)*8,cs=o/1.5-e/5+m,tc=t*0.3;let X=q*Math.sin(cs-tc)+n,Y=q*Math.cos(cs-tc)-79*Math.sin(y*0.3+t*0.2);const scale=2.5,cx=this.canvasWidth/2,cy=this.canvasHeight/2;return{x:cx+X*scale,y:cy+Y*scale*0.6};}
+            update(time){this.life++;this.i+=this.speed*0.5;const pos=this.computePosition(time);this.trail.push({x:pos.x,y:pos.y,life:this.trailLength});this.trail=this.trail.filter(p=>{p.life--;return p.life>0;});if(this.life>this.maxLife||pos.x<-50||pos.x>this.canvasWidth+50||pos.y<-50||pos.y>this.canvasHeight+50)this.reset();return pos;}
+            draw(ctx,colors,time,isPlaying){if(this.trail.length<2)return;const scene=scenes[this.scene],colorPalette=scene.formulaColors,baseOpacity=isPlaying?0.25:0.55;for(let i=1;i<this.trail.length;i++){const p1=this.trail[i-1],p2=this.trail[i],progress=i/this.trail.length,alpha=progress*baseOpacity,colorIndex=Math.floor(this.baseHue*colorPalette.length+progress*2)%colorPalette.length,color=colorPalette[colorIndex];ctx.beginPath();ctx.moveTo(p1.x,p1.y);ctx.lineTo(p2.x,p2.y);ctx.strokeStyle=color+Math.floor(alpha*255).toString(16).padStart(2,'0');ctx.lineWidth=this.size*progress*1.5;ctx.lineCap='round';ctx.stroke();}const head=this.trail[this.trail.length-1],headColor=colorPalette[Math.floor(this.baseHue*colorPalette.length)%colorPalette.length];const glow=ctx.createRadialGradient(head.x,head.y,0,head.x,head.y,this.size*8);glow.addColorStop(0,headColor+Math.floor(baseOpacity*100).toString(16).padStart(2,'0'));glow.addColorStop(1,headColor+'00');ctx.beginPath();ctx.arc(head.x,head.y,this.size*8,0,Math.PI*2);ctx.fillStyle=glow;ctx.fill();ctx.beginPath();ctx.arc(head.x,head.y,this.size*1.5,0,Math.PI*2);ctx.fillStyle=headColor+Math.floor(baseOpacity*200+55).toString(16).padStart(2,'0');ctx.fill();}
+        }
+
+        function initGestures(){const section=document.getElementById('visualizerSection');let sx=0,sy=0,drag=false,hint=false;const start=e=>{const t=e.touches?e.touches[0]:e;sx=t.clientX;sy=t.clientY;drag=true;};const move=e=>{if(!drag)return;e.preventDefault();const t=e.touches?e.touches[0]:e;const dx=t.clientX-sx,dy=t.clientY-sy;if(!hint&&(Math.abs(dx)>20||Math.abs(dy)>20)){document.getElementById('gestureHint').classList.add('visible');hint=true;setTimeout(()=>document.getElementById('gestureHint').classList.remove('visible'),4000);}};const end=e=>{if(!drag)return;drag=false;const t=e.changedTouches?e.changedTouches[0]:e;const dx=t.clientX-sx,dy=t.clientY-sy,ax=Math.abs(dx),ay=Math.abs(dy);if(ax>ay&&ax>50){const ci=sceneOrder.indexOf(state.currentScene);if(dx>0){const ni=(ci+1)%sceneOrder.length;switchScene(sceneOrder[ni]);}else{const pi=(ci-1+sceneOrder.length)%sceneOrder.length;switchScene(sceneOrder[pi]);}}else if(ay>ax&&ay>50){const r=section.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2;const vc=dy<0?8:-8;let nv=parseInt(document.getElementById('volumeSlider').value)+vc;nv=Math.max(0,Math.min(100,nv));document.getElementById('volumeSlider').value=nv;changeVolume(nv);createRipple(cx,cy,scenes[state.currentScene].colors[0]);}};section.addEventListener('touchstart',start,{passive:true});section.addEventListener('touchmove',move,{passive:false});section.addEventListener('touchend',end);section.addEventListener('mousedown',start);section.addEventListener('mousemove',move);section.addEventListener('mouseup',end);section.addEventListener('mouseleave',()=>{drag=false;});section.addEventListener('dblclick',()=>togglePlay());}
+        function createRipple(x,y,color){const r=document.createElement('div');r.className='volume-ripple';r.style.left=x+'px';r.style.top=y+'px';r.style.width='60px';r.style.height='60px';r.style.border='2px solid '+color;document.body.appendChild(r);setTimeout(()=>r.remove(),800);}
+
+        // ========== Radio System with Retry Logic ==========
+        function initRadioPanel(){const c=document.getElementById('radioStations');c.innerHTML='';radioStations.forEach(station=>{const el=document.createElement('div');el.className='radio-station';el.dataset.stationId=station.id;el.onclick=()=>playRadioStation(station);el.innerHTML='<div class="station-icon"><span class="material-icons-round" style="font-size:20px">'+station.icon+'</span></div><div class="station-info"><div class="station-name">'+station.name+'</div><div class="station-desc">'+station.description+'</div></div><div class="station-status"><div class="station-loading" style="display:none"></div><div class="playing-bars" style="display:none"><div class="playing-bar"></div><div class="playing-bar"></div><div class="playing-bar"></div><div class="playing-bar"></div></div></div>';c.appendChild(el);});}
+        function toggleRadioPanel(){const p=document.getElementById('radioPanel');state.radioPanelOpen=!state.radioPanelOpen;p.classList.toggle('open',state.radioPanelOpen);}
+
+        async function playRadioStation(station) {
+            if (state.radioConnecting) return;
+            state.radioConnecting = true;
+
+            // Show loading on this station
+            document.querySelectorAll('.radio-station').forEach(el => {
+                const isTarget = el.dataset.stationId === station.id;
+                el.classList.toggle('active', isTarget);
+                const loading = el.querySelector('.station-loading');
+                const bars = el.querySelector('.playing-bars');
+                if (loading) loading.style.display = isTarget ? 'block' : 'none';
+                if (bars) bars.style.display = 'none';
+            });
+
+            // Stop existing radio
+            if (state.radioAudio) {
+                state.radioAudio.pause();
+                state.radioAudio.src = '';
+                state.radioAudio = null;
+            }
+
+            // Stop local audio if playing
+            if (state.isPlaying) {
+                togglePlay();
+            }
+
+            // Try each URL with timeout
+            let connected = false;
+            for (let urlIndex = 0; urlIndex < station.urls.length; urlIndex++) {
+                const url = station.urls[urlIndex];
+                try {
+                    connected = await tryConnectRadio(url, station);
+                    if (connected) break;
+                } catch (err) {
+                    console.log('Radio URL failed:', url, err.message);
+                }
+            }
+
+            state.radioConnecting = false;
+
+            if (!connected) {
+                // All URLs failed
+                document.querySelectorAll('.radio-station').forEach(el => {
+                    const loading = el.querySelector('.station-loading');
+                    if (loading) loading.style.display = 'none';
+                });
+                if (state.isHostEnabled) {
+                    speak('Unable to connect to this station. The stream may be temporarily unavailable. Please try again later or select another station.');
+                }
+                return;
+            }
+
+            // Success - update UI
+            document.querySelectorAll('.radio-station').forEach(el => {
+                const loading = el.querySelector('.station-loading');
+                const bars = el.querySelector('.playing-bars');
+                if (loading) loading.style.display = 'none';
+                if (bars) bars.style.display = el.classList.contains('active') ? 'flex' : 'none';
+            });
+
+            state.isRadioPlaying = true;
+            state.currentStation = station;
+
+            const np = document.getElementById('radioNowPlaying');
+            const npt = document.getElementById('radioNowPlayingText');
+            npt.textContent = station.name;
+            np.classList.add('visible');
+            document.getElementById('radioToggle').classList.add('active');
+            toggleRadioPanel();
+
+            if (state.isHostEnabled) {
+                speak('Now tuning in to ' + station.name + '. ' + station.description.split('·')[0].trim() + '.');
+            }
+        }
+
+        function tryConnectRadio(url, station) {
+            return new Promise((resolve, reject) => {
+                const audio = new Audio();
+                audio.crossOrigin = 'anonymous';
+                audio.preload = 'none';
+                audio.volume = state.volume;
+
+                let resolved = false;
+                const timeout = setTimeout(() => {
+                    if (!resolved) {
+                        resolved = true;
+                        audio.src = '';
+                        reject(new Error('Connection timeout'));
+                    }
+                }, 8000);
+
+                audio.oncanplay = () => {
+                    if (!resolved) {
+                        resolved = true;
+                        clearTimeout(timeout);
+                        audio.play().then(() => {
+                            // Connect to analyser for visualization
+                            if (state.audioContext) {
+                                try {
+                                    const source = state.audioContext.createMediaElementSource(audio);
+                                    source.connect(state.analyser);
+                                    state.analyser.connect(state.audioContext.destination);
+                                } catch (e) {
+                                    // Already connected or other error - ignore
+                                }
+                            }
+                            state.radioAudio = audio;
+                            resolve(true);
+                        }).catch(err => {
+                            reject(err);
+                        });
+                    }
+                };
+
+                audio.onerror = () => {
+                    if (!resolved) {
+                        resolved = true;
+                        clearTimeout(timeout);
+                        reject(new Error('Audio load error'));
+                    }
+                };
+
+                audio.src = url;
+                audio.load();
+            });
+        }
+
+        function stopRadio() {
+            if (state.radioAudio) {
+                state.radioAudio.pause();
+                state.radioAudio.src = '';
+                state.radioAudio = null;
+            }
+            state.isRadioPlaying = false;
+            state.currentStation = null;
+            document.getElementById('radioNowPlaying').classList.remove('visible');
+            document.getElementById('radioToggle').classList.remove('active');
+            document.querySelectorAll('.radio-station').forEach(el => {
+                el.classList.remove('active');
+                const loading = el.querySelector('.station-loading');
+                const bars = el.querySelector('.playing-bars');
+                if (loading) loading.style.display = 'none';
+                if (bars) bars.style.display = 'none';
+            });
+        }
+
+        function enterSpace(){document.getElementById('welcomeScreen').classList.add('hidden');updateTimeDisplay();setInterval(updateTimeDisplay,1000);setTimeout(()=>{initAudio();initCanvas();initParticles();initFormulaParticles();initGestures();initFormulaOverlay();initRadioPanel();animate();setTimeout(()=>{if(state.isHostEnabled)speak(scenes[state.currentScene].hostMessages[0]);},2000);},1500);}
+        function initFormulaOverlay(){const overlay=document.getElementById('formulaOverlay');const formulas=['y = i/500','e = y/8','k = cos(5y)','o = √(k²+e²)/6','q = 2k + 49 + cos(θ)','cₛ = o/1.5 - e/5 + m','X = q·sin(cₛ-tc)','Y = q·cos(cₛ-tc) - 79sin(3y)','∫ f(x)dx','∂²u/∂t² = c²∇²u','e^(iπ) + 1 = 0'];formulas.forEach((formula,index)=>{const el=document.createElement('div');el.className='formula-text';el.textContent=formula;el.style.left=(8+Math.random()*75)+'%';el.style.top=(8+Math.random()*75)+'%';el.style.animationDelay=(index*0.7)+'s';el.style.animationDuration=(7+Math.random()*5)+'s';overlay.appendChild(el);});}
+        function updateTimeDisplay(){const now=new Date(),h=now.getHours().toString().padStart(2,'0'),m=now.getMinutes().toString().padStart(2,'0');document.getElementById('timeDisplay').textContent=h+':'+m;if(state.isPlaying&&state.sessionStartTime){const e=Math.floor((Date.now()-state.sessionStartTime)/1000),mi=Math.floor(e/60).toString().padStart(2,'0'),s=(e%60).toString().padStart(2,'0');document.getElementById('sessionTime').textContent='Session '+mi+':'+s;}}
+        function initAudio(){try{state.audioContext=new(window.AudioContext||window.webkitAudioContext)();state.analyser=state.audioContext.createAnalyser();state.analyser.fftSize=256;state.dataArray=new Uint8Array(state.analyser.frequencyBinCount);createAmbientSound();}catch(e){console.log('Audio init failed');}}
+        function createAmbientSound(){const ctx=state.audioContext,mg=ctx.createGain();mg.gain.value=0;mg.connect(state.analyser);state.analyser.connect(ctx.destination);state.masterGain=mg;state.oscillators=[];state.lfoNodes=[];const bf=110,cr=[1,1.5,2,2.5,3,4];cr.forEach((ratio,index)=>{const osc=ctx.createOscillator(),og=ctx.createGain();osc.type=index<2?'sine':'triangle';osc.frequency.value=bf*ratio;og.gain.value=0.3/(index+1);const lfo=ctx.createOscillator(),lg=ctx.createGain();lfo.frequency.value=0.1+index*0.05;lg.gain.value=bf*ratio*0.002;lfo.connect(lg);lg.connect(osc.frequency);lfo.start();osc.connect(og);og.connect(mg);osc.start();state.oscillators.push(osc);state.lfoNodes.push(lfo);});const nb=createPinkNoise(ctx,2),ns=ctx.createBufferSource(),ng=ctx.createGain(),nf=ctx.createBiquadFilter();ns.buffer=nb;ns.loop=true;nf.type='lowpass';nf.frequency.value=400;nf.Q.value=0.5;ng.gain.value=0.02;ns.connect(nf);nf.connect(ng);ng.connect(mg);ns.start();state.noiseSource=ns;state.noiseGain=ng;const bl=ctx.createOscillator(),bg=ctx.createGain();bl.frequency.value=0.08;bg.gain.value=0.1;bl.connect(bg);bg.connect(mg.gain);bl.start();state.breathLfo=bl;}
+        function createPinkNoise(ctx,duration){const bs=ctx.sampleRate*duration,b=ctx.createBuffer(1,bs,ctx.sampleRate),d=b.getChannelData(0);let b0=0,b1=0,b2=0,b3=0,b4=0,b5=0,b6=0;for(let i=0;i<bs;i++){const w=Math.random()*2-1;b0=0.99886*b0+w*0.0555179;b1=0.99332*b1+w*0.0750759;b2=0.96900*b2+w*0.1538520;b3=0.86650*b3+w*0.3104856;b4=0.55000*b4+w*0.5329522;b5=-0.7616*b5-w*0.0168980;d[i]=(b0+b1+b2+b3+b4+b5+b6+w*0.5362)*0.11;b6=w*0.115926;}return b;}
+        function togglePlay(){state.isPlaying=!state.isPlaying;const pb=document.getElementById('playButton'),pi=document.getElementById('playIcon'),st=document.getElementById('sessionTime'),fo=document.getElementById('formulaOverlay');if(state.isPlaying){pb.classList.add('playing');pi.textContent='pause';st.classList.add('active');fo.classList.add('active');state.sessionStartTime=Date.now()-state.sessionDuration*1000;if(state.audioContext&&state.masterGain){state.audioContext.resume();const tv=state.isMuted?0:state.volume*0.5;state.masterGain.gain.cancelScheduledValues(state.audioContext.currentTime);state.masterGain.gain.linearRampToValueAtTime(tv,state.audioContext.currentTime+4);}if(state.isHostEnabled&&Math.random()>0.4){setTimeout(()=>{const msgs=scenes[state.currentScene].hostMessages;speak(msgs[Math.floor(Math.random()*msgs.length)]);},5000);}}else{pb.classList.remove('playing');pi.textContent='play_arrow';st.classList.remove('active');fo.classList.remove('active');if(state.sessionStartTime)state.sessionDuration=Math.floor((Date.now()-state.sessionStartTime)/1000);if(state.masterGain){state.masterGain.gain.cancelScheduledValues(state.audioContext.currentTime);state.masterGain.gain.linearRampToValueAtTime(0,state.audioContext.currentTime+3);}}}
+        function speak(text){if(!state.isHostEnabled)return;if('speechSynthesis'in window){window.speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);u.lang='en-US';u.rate=0.85;u.pitch=0.95;u.volume=state.volume*0.8;showHostMessage(text);u.onend=()=>setTimeout(()=>hideHostMessage(),2000);window.speechSynthesis.speak(u);}else{showHostMessage(text);setTimeout(()=>hideHostMessage(),5000);}}
+        function showHostMessage(text){const el=document.getElementById('hostMessage'),tel=document.getElementById('hostText');tel.textContent=text;el.classList.add('active');}
+        function hideHostMessage(){document.getElementById('hostMessage').classList.remove('active');}
+        function toggleHost(){state.isHostEnabled=!state.isHostEnabled;const btn=document.getElementById('hostToggle');btn.classList.toggle('active',state.isHostEnabled);if(!state.isHostEnabled){window.speechSynthesis?.cancel();hideHostMessage();}}
+        function switchScene(scene){if(state.currentScene===scene)return;state.currentScene=scene;const flash=document.getElementById('sceneFlash');flash.style.background=scenes[scene].flashColor;flash.classList.add('active');setTimeout(()=>flash.classList.remove('active'),600);document.querySelectorAll('.scene-btn').forEach(btn=>btn.classList.toggle('active',btn.dataset.scene===scene));document.body.className='scene-'+scene;document.getElementById('currentScene').textContent=scenes[scene].name;initParticles();initFormulaParticles();updateSceneSound(scene);if(state.isHostEnabled&&state.isPlaying){setTimeout(()=>{const msgs=scenes[scene].hostMessages;speak(msgs[Math.floor(Math.random()*msgs.length)]);},1500);}}
+        function updateSceneSound(scene){if(!state.audioContext||!state.oscillators)return;const ctx=state.audioContext,now=ctx.currentTime;const bfs={meditation:90,focus:130,sleep:65},bf=bfs[scene],cr=[1,1.5,2,2.5,3,4];state.oscillators.forEach((osc,index)=>{const tf=bf*cr[index];osc.frequency.cancelScheduledValues(now);osc.frequency.linearRampToValueAtTime(tf,now+5);});if(state.breathLfo){const bs={meditation:0.06,focus:0.1,sleep:0.04};state.breathLfo.frequency.cancelScheduledValues(now);state.breathLfo.frequency.linearRampToValueAtTime(bs[scene],now+3);}}
+        function initCanvas(){const c=document.getElementById('visualizer-canvas'),ctx=c.getContext('2d');function resize(){c.width=c.offsetWidth*window.devicePixelRatio;c.height=c.offsetHeight*window.devicePixelRatio;ctx.scale(window.devicePixelRatio,window.devicePixelRatio);}resize();window.addEventListener('resize',resize);state.canvas=c;state.ctx=ctx;}
+        function initParticles(){const sc=scenes[state.currentScene];state.particles=[];const c=document.getElementById('visualizer-canvas'),w=c.offsetWidth,h=c.offsetHeight;for(let i=0;i<sc.particleCount;i++)state.particles.push({x:Math.random()*w,y:Math.random()*h,size:Math.random()*3+1,speedX:(Math.random()-0.5)*sc.particleSpeed,speedY:(Math.random()-0.5)*sc.particleSpeed,opacity:Math.random()*0.5+0.2,colorIndex:Math.floor(Math.random()*sc.colors.length)});}
+        function initFormulaParticles(){const c=document.getElementById('visualizer-canvas'),w=c.offsetWidth,h=c.offsetHeight,count=state.reducedMotion?0:40;state.formulaParticles=[];for(let i=0;i<count;i++)state.formulaParticles.push(new FormulaParticle(w,h,state.currentScene));}
+        function animate(){state.animationId=requestAnimationFrame(animate);const ctx=state.ctx,c=state.canvas,w=c.offsetWidth,h=c.offsetHeight,sc=scenes[state.currentScene],time=Date.now();ctx.clearRect(0,0,w,h);let audioData=null;if(state.analyser&&(state.isPlaying||state.isRadioPlaying)){state.analyser.getByteFrequencyData(state.dataArray);audioData=state.dataArray;}state.ringPhase+=sc.ringSpeed;if(!state.reducedMotion){state.formulaParticles.forEach(p=>{p.update(time);p.draw(ctx,sc.colors,time,state.isPlaying||state.isRadioPlaying);});}drawRingWaveform(ctx,w,h,audioData,sc);drawWaveform(ctx,w,h,audioData,sc);updateAndDrawParticles(ctx,w,h,sc);}
+        function drawRingWaveform(ctx,w,h,audioData,sc){const cx=w/2,cy=h/2,br=Math.min(w,h)*0.22,bc=120;for(let ring=0;ring<sc.ringCount;ring++){const rr=br+ring*25,ro=0.25-ring*0.06;ctx.beginPath();for(let i=0;i<=bc;i++){const angle=(i/bc)*Math.PI*2+state.ringPhase*(ring%2===0?1:-1);let bh;if(audioData&&(state.isPlaying||state.isRadioPlaying)){const di=Math.floor(i*audioData.length/bc);bh=(audioData[di]/255)*35;}else{const t=Date.now()*0.001;bh=Math.sin(t*0.5+i*0.1+ring)*12+15;bh+=Math.sin(t*0.3+i*0.05)*8;}const ir=rr,x1=cx+Math.cos(angle)*ir,y1=cy+Math.sin(angle)*ir;if(i===0)ctx.moveTo(x1,y1);else ctx.lineTo(x1,y1);}ctx.closePath();ctx.strokeStyle=sc.colors[ring%sc.colors.length]+Math.floor(ro*255).toString(16).padStart(2,'0');ctx.lineWidth=1.2;ctx.stroke();}}
+        function drawWaveform(ctx,w,h,audioData,sc){const bc=64,bw=w/bc*0.8,gap=w/bc*0.2;for(let i=0;i<bc;i++){let bh;if(audioData&&(state.isPlaying||state.isRadioPlaying)){const di=Math.floor(i*audioData.length/bc);bh=(audioData[di]/255)*h*0.5;}else{const t=Date.now()*0.001;bh=Math.sin(t*0.5+i*0.2)*15+25;bh+=Math.sin(t*0.3+i*0.1)*12;}const x=i*(bw+gap)+gap/2,y=(h-bh)/2;const grad=ctx.createLinearGradient(x,y,x,y+bh);grad.addColorStop(0,sc.colors[0]+'60');grad.addColorStop(0.5,sc.colors[1]+'40');grad.addColorStop(1,sc.colors[2]+'20');ctx.fillStyle=grad;ctx.fillRect(x,y,bw,bh);ctx.fillRect(x,h-y-bh,bw,bh);}}
+        function updateAndDrawParticles(ctx,w,h,sc){const time=Date.now()*0.001,bs=1+Math.sin(time*0.5)*0.2;state.particles.forEach((p,index)=>{p.x+=p.speedX;p.y+=p.speedY;p.x+=Math.sin(time+p.y*0.01)*0.1;p.y+=Math.cos(time+p.x*0.01)*0.1;if(p.x<-10)p.x=w+10;if(p.x>w+10)p.x=-10;if(p.y<-10)p.y=h+10;if(p.y>h+10)p.y=-10;const size=p.size*bs,opacity=p.opacity*(0.8+Math.sin(time*0.8+index)*0.2);const grad=ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,size*3);grad.addColorStop(0,sc.colors[p.colorIndex]+Math.floor(opacity*255).toString(16).padStart(2,'0'));grad.addColorStop(1,sc.colors[p.colorIndex]+'00');ctx.beginPath();ctx.arc(p.x,p.y,size*3,0,Math.PI*2);ctx.fillStyle=grad;ctx.fill();ctx.beginPath();ctx.arc(p.x,p.y,size,0,Math.PI*2);ctx.fillStyle=sc.colors[p.colorIndex]+Math.floor((opacity+0.3)*255).toString(16).padStart(2,'0');ctx.fill();state.particles.slice(index+1).forEach(other=>{const dx=p.x-other.x,dy=p.y-other.y,dist=Math.sqrt(dx*dx+dy*dy);if(dist<100){ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(other.x,other.y);ctx.strokeStyle=sc.colors[0]+Math.floor((1-dist/100)*20).toString(16).padStart(2,'0');ctx.lineWidth=0.5;ctx.stroke();}});});}
+        function changeVolume(value){state.volume=value/100;updateVolumeIcon();if(state.masterGain&&state.isPlaying&&!state.isMuted){state.masterGain.gain.cancelScheduledValues(state.audioContext.currentTime);state.masterGain.gain.linearRampToValueAtTime(state.volume*0.5,state.audioContext.currentTime+0.5);}if(state.radioAudio)state.radioAudio.volume=state.volume;}
+        function toggleMute(){state.isMuted=!state.isMuted;if(state.masterGain){state.masterGain.gain.cancelScheduledValues(state.audioContext.currentTime);if(state.isMuted)state.masterGain.gain.linearRampToValueAtTime(0,state.audioContext.currentTime+0.5);else if(state.isPlaying)state.masterGain.gain.linearRampToValueAtTime(state.volume*0.5,state.audioContext.currentTime+0.5);}if(state.radioAudio)state.radioAudio.muted=state.isMuted;updateVolumeIcon();}
+        function updateVolumeIcon(){const icon=document.getElementById('volumeIcon');if(state.isMuted||state.volume===0)icon.textContent='volume_off';else if(state.volume<0.5)icon.textContent='volume_down';else icon.textContent='volume_up';}
+        function toggleInfo(){const msgs=['Sonoria AI Pro is your emotional space host.','Here, music is not background—it is a space you can enter.','Choose a scene and let me accompany you through this moment.'];speak(msgs[Math.floor(Math.random()*msgs.length)]);}
+        let lastHostTime=0;function checkAutoHost(){const now=Date.now();if((state.isPlaying||state.isRadioPlaying)&&state.isHostEnabled&&now-lastHostTime>60000){if(Math.random()>0.7){const msgs=scenes[state.currentScene].hostMessages;speak(msgs[Math.floor(Math.random()*msgs.length)]);lastHostTime=now;}}setTimeout(checkAutoHost,10000);}setTimeout(checkAutoHost,30000);
+        document.addEventListener('keydown',e=>{if(e.code==='Space'){e.preventDefault();togglePlay();}else if(e.code==='KeyM')toggleMute();else if(e.code==='KeyH')toggleHost();else if(e.code==='Digit1')switchScene('meditation');else if(e.code==='Digit2')switchScene('focus');else if(e.code==='Digit3')switchScene('sleep');});
+        window.matchMedia('(prefers-reduced-motion: reduce)').addEventListener('change',e=>{state.reducedMotion=e.matches;if(state.reducedMotion)state.formulaParticles=[];else initFormulaParticles();});
+    </script>
+</body>
+</html>
