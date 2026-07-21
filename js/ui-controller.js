@@ -113,6 +113,17 @@
             });
         }
 
+        // Volume slider
+        var volSlider = document.getElementById('vol-slider');
+        if (volSlider) {
+            volSlider.addEventListener('input', function (e) {
+                var val = parseFloat(e.target.value);
+                if (window.state.gainNode) {
+                    window.state.gainNode.gain.value = val;
+                }
+            });
+        }
+
         // Zen — click on shell background exits zen
         var app = document.getElementById('app');
         if (app) {
@@ -322,7 +333,9 @@
         if (!code) return;
         try {
             /* eslint-disable no-new-func */
-            new Function(code.value)();
+            var f = new Function('s', 'o0', 'o1', 'o2', 'o3', 'time', 'window', code.value);
+            var s = _viz.synth;
+            f(s, s.o0, s.o1, s.o2, s.o3, window.time, window);
             window.SonoriaUtils.showToast('Visual applied');
         } catch (e) {
             window.SonoriaUtils.showToast('Hydra error: ' + e.message);

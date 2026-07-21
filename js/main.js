@@ -26,7 +26,8 @@
             ringProgress: document.getElementById('ring-progress'),
             ringLogo:     document.getElementById('ring-logo'),
             plView:       document.getElementById('playlist-view'),
-            styleGrid:    document.getElementById('style-grid')
+            styleGrid:    document.getElementById('style-grid'),
+            volSlider:    document.getElementById('vol-slider')
         };
     }
 
@@ -65,6 +66,14 @@
         setTimeout(function () {
             viz.applyStyle(window.state.mode);
         }, 500);
+
+        // 7. Global time for Hydra
+        window.time = 0;
+        function updateTime() {
+            window.time = performance.now() / 1000;
+            requestAnimationFrame(updateTime);
+        }
+        updateTime();
     }
 
     function exposeGlobals() {
